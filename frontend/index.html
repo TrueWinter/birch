@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Birch</title>
+</head>
+<body>
+	<!-- Future versions will allow searching old log files -->
+	<!--<div class="sidebar">
+		<div>
+			<img id="logo" class="logo" src="/src/assets/images/birch.png" />
+		</div>
+		<div class="sep"></div>
+		<div class="files">
+			<div class="file"></div>
+		</div>
+	</div>-->
+
+	<div id="main">
+		<div class="header">
+			<div class="search">
+				<div class="input-box" id="input">
+					<input class="input" id="search" type="text" autocomplete="off" />
+					<button class="btn" id="searchBtn" onclick="search()">Search</button>
+				</div>
+				<div id="use-as-btn" onclick="showASSearch()">Use advanced search</div>
+			</div>
+			<div id="settingsBtn">
+				<img src="src/assets/images/cogwheel.svg">
+			</div>
+		</div>
+		<div class="sep"></div>
+		<div id="viewer"></div>
+	</div>
+
+	<div id="settings" style="display:none;">
+		<h1>Settings</h1>
+		<p>You will need to restart Birch for changes to apply</p>
+		<div>
+			<b>Minecraft Location: </b>
+			<span class="current-setting">
+				<span class="setting" data-setting="MinecraftDirectory"></span>
+			</span>
+			<span class="change-setting">
+				<button onclick="changeSetting('MinecraftDirectory')">Change</button>
+			</span>
+		</div>
+	</div>
+
+	<div id="advanced-search" style="display:none;">
+		<div onclick="hideASSearch()" style="display: inline; float: right; color: coral; cursor: pointer;">X</div>
+		<h1 style="margin-top: 4px;margin-bottom: 4px;">Advanced Search</h1>
+		<div style="font-size: small;">Press the search button in the header to return to simple search mode</div>
+		<hr/>
+
+		<div id="as-inputs"></div>
+
+		<div class="input-box">
+			Search mode: <select class="input" id="as-search-mode">
+				<option selected="">and</option>
+				<option>or</option>
+			</select>
+		</div>
+
+		<div class="input-box">
+			<button class="input" onclick="addASInput()">+</button>
+			<button class="input" onclick="asSearch()">Search</button>		
+		</div>
+	</div>
+
+	<script src="./src/main.js" type="module"></script>
+</body>
+</html>
