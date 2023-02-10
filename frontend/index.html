@@ -19,12 +19,17 @@
 
 	<div id="main">
 		<div class="header">
+			<div id="clearLogsBtn" class="input-box">
+				<button class="input" onclick="clearLogs()">Clear Logs</button>
+			</div>
 			<div class="search">
 				<div class="input-box" id="input">
 					<input class="input" id="search" type="text" autocomplete="off" />
 					<button class="btn" id="searchBtn" onclick="search()">Search</button>
 				</div>
-				<div id="use-as-btn" onclick="showASSearch()">Use advanced search</div>
+				<div id="use-as-btn">
+					<span onclick="showASSearch()">Use advanced search</span>
+				</div>
 			</div>
 			<div id="settingsBtn">
 				<img src="src/assets/images/cogwheel.svg">
@@ -35,16 +40,25 @@
 	</div>
 
 	<div id="settings" style="display:none;">
+		<div onclick="hideSettings()" style="display: inline; float: right; color: coral; cursor: pointer;">X</div>
 		<h1>Settings</h1>
 		<p>You will need to restart Birch for changes to apply</p>
 		<div>
-			<b>Minecraft Location: </b>
-			<span class="current-setting">
-				<span class="setting" data-setting="MinecraftDirectory"></span>
-			</span>
-			<span class="change-setting">
-				<button onclick="changeSetting('MinecraftDirectory')">Change</button>
-			</span>
+			<div class="setting-container">
+				<b>Minecraft Location: </b>
+				<span class="current-setting">
+					<span class="setting" data-setting="MinecraftDirectory" data-type="text"></span>
+				</span>
+				<span class="change-setting">
+					<button onclick="changeSetting('MinecraftDirectory')">Change</button>
+				</span>
+			</div>
+			<div class="setting-container">
+				<b>Ignore logs from before Birch was opened:</b>
+				<span class="current-setting">
+					<input type="checkbox" class="setting" data-setting="IgnoreOldLogs" data-type="bool" />
+				</span>
+			</div>
 		</div>
 	</div>
 

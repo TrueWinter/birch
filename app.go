@@ -22,6 +22,8 @@ type App struct {
 }
 
 var fileSize *int64
+var ignoreLines *int
+var linesCount *int
 var allPrevLogLines *[]string
 var lastPrevLogLines *[]string
 
@@ -35,6 +37,8 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	fileSize = new(int64)
+	ignoreLines = new(int)
+	linesCount = new(int)
 	allPrevLogLines = new([]string)
 	lastPrevLogLines = new([]string)
 
@@ -97,13 +101,23 @@ func (a *App) LoadLog() {
 	reader := transform.NewReader(file, charmap.ISO8859_1.NewDecoder())
 	scanner := bufio.NewScanner(reader)
 	lines := []string{}
+	*linesCount = 0
 
 	for scanner.Scan() {
 		line := scanner.Text()
 
 		if strings.Contains(line, "[CHAT]") {
-			lines = append(lines, scanner.Text())
+			if *linesCount >= *ignoreLines {
+				if !(config.IgnoreOldLogs && *ignoreLines == 0) {
+					lines = append(lines, scanner.Text())
+				}
+			}
+			*linesCount++
 		}
+	}
+
+	if config.IgnoreOldLogs && *ignoreLines == 0 {
+		*ignoreLines = *linesCount
 	}
 
 	if *fileSize < lastFileSize {
@@ -123,31 +137,48 @@ func (a *App) GetSettings() string {
 	return string(data)
 }
 
+func (a *App) BoolSettingChanged(setting string, value bool) {
+	switch setting {
+		case "IgnoreOldLogs":
+			config.IgnoreOldLogs = value
+			break
+	}
+
+	SaveConfig()
+	runtime.EventsEmit(a.ctx, "settingsChanged")
+	runtime.EventsEmit(a.ctx, "message", "Settings changed, please restart Birch")
+}
+
 func (a *App) ChangeSetting(setting string) {
 	switch setting {
-	case "MinecraftDirectory":
-		dialogOptions := runtime.OpenDialogOptions{
-			DefaultDirectory: userAppdataDir,
-			Title: "Select your Minecraft installation folder",
-		}
-
-		dir, err := runtime.OpenDirectoryDialog(a.ctx, dialogOptions)
-		if err != nil || dir == "" {
-			if err != nil {
-				runtime.EventsEmit(a.ctx, "error", "Failed to get selected folder: " + err.Error())
-			} else {
-				runtime.EventsEmit(a.ctx, "error", "Failed to get selected folder")
+		case "MinecraftDirectory":
+			dialogOptions := runtime.OpenDialogOptions{
+				DefaultDirectory: userAppdataDir,
+				Title: "Select your Minecraft installation folder",
 			}
 
-			return
-		}
+			dir, err := runtime.OpenDirectoryDialog(a.ctx, dialogOptions)
+			if err != nil || dir == "" {
+				if err != nil {
+					runtime.EventsEmit(a.ctx, "error", "Failed to get selected folder: " + err.Error())
+				} else {
+					runtime.EventsEmit(a.ctx, "error", "Failed to get selected folder")
+				}
 
-		config.MinecraftDirectory = dir
-		SaveConfig()
+				return
+			}
 
-		break;
+			config.MinecraftDirectory = dir
+			SaveConfig()
+
+			break
 	}
 
 	runtime.EventsEmit(a.ctx, "settingsChanged")
 	runtime.EventsEmit(a.ctx, "message", "Settings changed, please restart Birch")
+}
+
+func (a *App) ClearLogs() {
+	*ignoreLines = *linesCount
+	a.LoadLog()
 }

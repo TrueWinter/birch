@@ -3,8 +3,10 @@ import './app.css';
 
 import {
 	LoadLog,
+	ClearLogs,
 	GetSettings,
-	ChangeSetting
+	ChangeSetting,
+	BoolSettingChanged
 } from '../wailsjs/go/main/App';
 
 window.logLines = [];
@@ -30,6 +32,22 @@ window.addEventListener('load', () => {
 	});
 
 	updateDomSettings();
+
+	[...document.getElementsByClassName('setting')].forEach((s) => {
+		if (s.localName === 'input') {
+			s.addEventListener('change', (e) => {
+				switch (e.target.type) {
+					case 'checkbox':
+						BoolSettingChanged(
+							e.target.dataset.setting,
+							e.target.checked ?? false
+						);
+						break;
+				}
+				
+			});
+		}
+	});
 });
 
 function updateDomSettings() {
@@ -40,7 +58,14 @@ function updateDomSettings() {
 		for (var setting in settings) {
 			for (var i = 0; i < domSettings.length; i++) {
 				if (domSettings[i].dataset.setting === setting) {
-					domSettings[i].innerText = settings[setting];
+					switch (domSettings[i].dataset.type) {
+						case 'text':
+							domSettings[i].innerText = settings[setting];
+							break
+						case 'bool':
+							domSettings[i].checked = settings[setting];
+							break;
+					}
 				}
 			}
 		}
@@ -93,6 +118,12 @@ runtime.EventsOn('error', (d) => {
 	document.getElementById('viewer').innerText = d;
 });
 
+function bracketFix(str) {
+	// See log event for reason
+	return str.startsWith('[') || str.length == 0 ?
+	str : `[${str}`
+}
+
 window.search = () => {
 	advancedSearch = false;
 	var searchFor = document.getElementById('search').value;
@@ -100,11 +131,7 @@ window.search = () => {
 
 	for (var i = 0; i < logLines.length; i++) {
 		if (logLines[i].toLowerCase().includes(searchFor.toLowerCase())) {
-			output.push(
-				// See log event for reason
-				logLines[i].startsWith('[') ?
-				logLines[i] : `[${logLines[i]}`
-			);
+			output.push(bracketFix(logLines[i]));
 		}
 	}
 
@@ -157,21 +184,13 @@ window.asSearch = () => {
 				}
 
 				if (trueSearchNum === inputs.length) {
-					output.push(
-						// See log event for reason
-						logLines[i].startsWith('[') ?
-						logLines[i] : `[${logLines[i]}`
-					);
+					output.push(bracketFix(logLines[i]));
 				}
 				break;
 			case 'or':
 				for (let j = 0; j < inputs.length; j++) {
 					if (logLines[i].toLowerCase().includes(inputs[j].value.toLowerCase())) {
-						output.push(
-							// See log event for reason
-							logLines[i].startsWith('[') ?
-							logLines[i] : `[${logLines[i]}`
-						);
+						output.push(bracketFix(logLines[i]));
 					}
 				}
 				break;
@@ -184,6 +203,10 @@ window.asSearch = () => {
 	document.getElementById('viewer').scrollTo(0, document.getElementById('viewer').scrollHeight);
 	hideASSearch();
 };
+
+window.clearLogs = () => {
+	ClearLogs();
+}
 
 // Notes for future advanced search option
 /**

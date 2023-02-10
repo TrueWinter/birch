@@ -21,6 +21,7 @@ var assets embed.FS
 
 type BirchConfig struct {
 	MinecraftDirectory string
+	IgnoreOldLogs bool
 }
 
 var config BirchConfig
