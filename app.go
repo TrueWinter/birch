@@ -107,17 +107,12 @@ func (a *App) LoadLog() {
 		line := scanner.Text()
 
 		if strings.Contains(line, "[CHAT]") {
-			if *linesCount >= *ignoreLines {
-				if !(config.IgnoreOldLogs && *ignoreLines == 0) {
-					lines = append(lines, scanner.Text())
-				}
-			}
-			*linesCount++
+			lines = append(lines, scanner.Text())
 		}
 	}
 
 	if config.IgnoreOldLogs && *ignoreLines == 0 {
-		*ignoreLines = *linesCount
+		*ignoreLines = len(lines)
 	}
 
 	if *fileSize < lastFileSize {
@@ -127,6 +122,8 @@ func (a *App) LoadLog() {
 
 	*lastPrevLogLines = lines
 	lines = append(*allPrevLogLines, lines...)
+	*linesCount = len(lines)
+	lines = lines[*ignoreLines:]
 
 	log.Println("Emitting log")
 	runtime.EventsEmit(a.ctx, "log", strings.Join(lines, "\n"))
