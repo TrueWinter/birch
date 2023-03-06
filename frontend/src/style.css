@@ -19,3 +19,7 @@ body {
     src: local(""),
     url("assets/fonts/nunito-v16-latin-regular.woff2") format("woff2");
 }
+
+a {
+	color: aqua;
+}

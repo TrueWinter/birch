@@ -41,7 +41,9 @@ func (a *App) startup(ctx context.Context) {
 	linesCount = new(int)
 	allPrevLogLines = new([]string)
 	lastPrevLogLines = new([]string)
+}
 
+func (a *App) ready(ctx context.Context) {
 	w := watcher.New()
 	w.FilterOps(watcher.Write)
 
@@ -76,6 +78,10 @@ func (a *App) startup(ctx context.Context) {
 			runtime.EventsEmit(ctx, "error", "Failed to check for changes in latest log file: " + err.Error())
 		}
 	}()
+
+	if (!config.SkipUpdateCheck) {
+		runtime.EventsEmit(ctx, "updateCheck")
+	}
 }
 
 func (a *App) LoadLog() {
@@ -138,7 +144,8 @@ func (a *App) BoolSettingChanged(setting string, value bool) {
 	switch setting {
 		case "IgnoreOldLogs":
 			config.IgnoreOldLogs = value
-			break
+		case "SkipUpdateCheck":
+			config.SkipUpdateCheck = value;
 	}
 
 	SaveConfig()
@@ -167,8 +174,6 @@ func (a *App) ChangeSetting(setting string) {
 
 			config.MinecraftDirectory = dir
 			SaveConfig()
-
-			break
 	}
 
 	runtime.EventsEmit(a.ctx, "settingsChanged")

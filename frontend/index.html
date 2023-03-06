@@ -39,6 +39,11 @@
 		<div id="viewer"></div>
 	</div>
 
+	<div id="update-notification">
+		<div onclick="hideUpdateNotification()" style="display: inline; float: right; color: coral; cursor: pointer;">X</div>
+		<div id="update-notification-text"></div>
+	</div>
+
 	<div id="settings" style="display:none;">
 		<div onclick="hideSettings()" style="display: inline; float: right; color: coral; cursor: pointer;">X</div>
 		<h1>Settings</h1>
@@ -59,7 +64,16 @@
 					<input type="checkbox" class="setting" data-setting="IgnoreOldLogs" data-type="bool" />
 				</span>
 			</div>
+			<div class="setting-container">
+				<b>Skip update check on startup:</b>
+				<span class="current-setting">
+					<input type="checkbox" class="setting" data-setting="SkipUpdateCheck" data-type="bool" />
+				</span>
+			</div>
 		</div>
+		<hr />
+		<div style="display: inline; float: left;"><span style="color:bisque;">Birch</span>, developed by TrueWinter</div>
+		<div id="settings-version" style="display: inline; float: right;"></div>
 	</div>
 
 	<div id="advanced-search" style="display:none;">

@@ -9,6 +9,9 @@ import {
 	BoolSettingChanged
 } from '../wailsjs/go/main/App';
 
+import wailsConfig from '../../wails.json';
+window.VERSION = wailsConfig.info.productVersion;
+
 window.logLines = [];
 
 function handleResize() {
@@ -19,6 +22,8 @@ function handleResize() {
 window.addEventListener('load', () => {
 	handleResize();
 	LoadLog();
+
+	document.getElementById('settings-version').innerText = `v${VERSION}`;
 
 	document.getElementById('search').addEventListener('keyup', (e) => {
 		e.preventDefault();
@@ -98,6 +103,33 @@ runtime.EventsOn('settingsChanged', () => {
 	updateDomSettings();
 });
 
+window.openUrl = (url) => {
+	runtime.BrowserOpenURL(url);
+}
+
+window.updateCheck = async () => {
+	let resp = await fetch('https://api.github.com/repos/TrueWinter/Birch/releases/latest');
+	if (resp.status !== 200) return;
+	let release = await resp.json();
+
+	if (release.tag_name > `v${window.VERSION}`) {
+		let link = document.createElement('a');
+		link.href = 'javascript:void(0)';
+		link.setAttribute('onclick', `openUrl('${release.html_url}')`);
+		link.innerText = 'Click here to download it.';
+		document.getElementById('update-notification-text').innerHTML = `An update is available. ${link.outerHTML}`;
+		document.getElementById('update-notification').style.display = 'block';
+	}
+};
+
+window.hideUpdateNotification = () => {
+	document.getElementById('update-notification').style.display = 'none';
+};
+
+runtime.EventsOn('updateCheck', () => {
+	updateCheck();
+});
+
 window.advancedSearch = false;
 runtime.EventsOn('log', (d) => {
 	// Some log lines have multiple lines, so this is needed to split them properly
@@ -124,6 +156,17 @@ function bracketFix(str) {
 	str : `[${str}`
 }
 
+var isUserScrolling = false;
+document.getElementById('viewer').addEventListener('scroll', () => {
+	isUserScrolling = true;
+
+	if (document.getElementById('viewer').scrollHeight ===
+		document.getElementById('viewer').scrollTop +
+		document.getElementById('viewer').clientHeight) {
+			isUserScrolling = false;
+		}
+});
+
 window.search = () => {
 	advancedSearch = false;
 	var searchFor = document.getElementById('search').value;
@@ -136,7 +179,10 @@ window.search = () => {
 	}
 
 	document.getElementById('viewer').innerText = output.join('\n');
-	document.getElementById('viewer').scrollTo(0, document.getElementById('viewer').scrollHeight);
+
+	if (!isUserScrolling) {
+		document.getElementById('viewer').scrollTo(0, document.getElementById('viewer').scrollHeight);
+	}
 };
 
 window.showASSearch = () => {

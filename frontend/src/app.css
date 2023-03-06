@@ -137,3 +137,16 @@
     margin-left: auto;
     margin-right: auto;
 }
+
+#update-notification {
+	display: none;
+	position: fixed;
+    bottom: 0;
+    right: 0;
+    width: 150px;
+    margin-right: 4vh;
+    margin-bottom: 2vh;
+    background-color: #222;
+    padding: 2vh;
+    border-radius: 2vh;
+};

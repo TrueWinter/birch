@@ -22,6 +22,7 @@ var assets embed.FS
 type BirchConfig struct {
 	MinecraftDirectory string
 	IgnoreOldLogs bool
+	SkipUpdateCheck bool
 }
 
 var config BirchConfig
@@ -40,6 +41,7 @@ func ui(app *App) {
 		},
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
 		OnStartup: app.startup,
+		OnDomReady: app.ready,
 		Bind: []interface{}{
 			app,
 		},
