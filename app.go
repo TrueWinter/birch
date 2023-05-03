@@ -4,13 +4,14 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"io"
 	"log"
 	"os"
 	"strings"
 	"time"
 
-	"golang.org/x/text/transform"
 	"golang.org/x/text/encoding/charmap"
+	"golang.org/x/text/transform"
 
 	"github.com/radovskyb/watcher"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -22,10 +23,10 @@ type App struct {
 }
 
 var fileSize *int64
-var ignoreLines *int
 var linesCount *int
-var allPrevLogLines *[]string
-var lastPrevLogLines *[]string
+var didDoInitialLogIgnore bool
+var shouldLoadLog bool
+var hasWatcher bool
 
 // NewApp creates a new App application struct
 func NewApp() *App {
@@ -37,21 +38,26 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	fileSize = new(int64)
-	ignoreLines = new(int)
 	linesCount = new(int)
-	allPrevLogLines = new([]string)
-	lastPrevLogLines = new([]string)
+	didDoInitialLogIgnore = false
+	shouldLoadLog = true
+	hasWatcher = false
 }
 
 func (a *App) ready(ctx context.Context) {
+	if hasWatcher {
+		return
+	}
+
 	w := watcher.New()
 	w.FilterOps(watcher.Write)
+	hasWatcher = true
 
 	go func () {
 		for {
 			select {
-			case event := <-w.Event:	
-				log.Println(event) // Print the event's info.
+			case event := <-w.Event:
+				log.Println(event)
 				runtime.EventsEmit(ctx, "changed")
 			case err := <-w.Error:
 				log.Fatalln(err)
@@ -85,6 +91,10 @@ func (a *App) ready(ctx context.Context) {
 }
 
 func (a *App) LoadLog() {
+	if !shouldLoadLog {
+		return
+	}
+
 	log.Println("Loading log")
 	file, err := os.Open(latestLogFile)
 	if err != nil {
@@ -99,40 +109,44 @@ func (a *App) LoadLog() {
 	if err != nil {
 		log.Println("Failed to check log size: " + err.Error())
 		runtime.EventsEmit(a.ctx, "error", "Failed to check log size: " + err.Error())
-		return;
+		return
 	}
 
 	*fileSize = s.Size()
+	if *fileSize < lastFileSize {
+		log.Println("Log file rotated")
+		lastFileSize = 0
+	}
+	// Only load what's changed since last time
+	file.Seek(lastFileSize, io.SeekStart)
 
 	reader := transform.NewReader(file, charmap.ISO8859_1.NewDecoder())
 	scanner := bufio.NewScanner(reader)
-	lines := []string{}
-	*linesCount = 0
+	newLogs := []string{}
 
 	for scanner.Scan() {
 		line := scanner.Text()
 
 		if strings.Contains(line, "[CHAT]") {
-			lines = append(lines, scanner.Text())
+			newLogs = append(newLogs, line)
 		}
 	}
 
-	if config.IgnoreOldLogs && *ignoreLines == 0 {
-		*ignoreLines = len(lines)
+	*linesCount = len(newLogs)
+
+	// If no chat logs changed (often happens when a warning/error
+	// gets logged by Minecraft), don't do anything else.
+	if *linesCount == 0 {
+		return
 	}
 
-	if *fileSize < lastFileSize {
-		*allPrevLogLines = append(*allPrevLogLines, *lastPrevLogLines...)
-		log.Println("Log file rotated")
+	if config.IgnoreOldLogs && !didDoInitialLogIgnore {
+		newLogs = []string{}
+		didDoInitialLogIgnore = true
 	}
-
-	*lastPrevLogLines = lines
-	lines = append(*allPrevLogLines, lines...)
-	*linesCount = len(lines)
-	lines = lines[*ignoreLines:]
 
 	log.Println("Emitting log")
-	runtime.EventsEmit(a.ctx, "log", strings.Join(lines, "\n"))
+	runtime.EventsEmit(a.ctx, "log", strings.Join(newLogs, "\n"))
 }
 
 func (a *App) GetSettings() string {
@@ -151,6 +165,7 @@ func (a *App) BoolSettingChanged(setting string, value bool) {
 	SaveConfig()
 	runtime.EventsEmit(a.ctx, "settingsChanged")
 	runtime.EventsEmit(a.ctx, "message", "Settings changed, please restart Birch")
+	shouldLoadLog = false
 }
 
 func (a *App) ChangeSetting(setting string) {
@@ -178,9 +193,5 @@ func (a *App) ChangeSetting(setting string) {
 
 	runtime.EventsEmit(a.ctx, "settingsChanged")
 	runtime.EventsEmit(a.ctx, "message", "Settings changed, please restart Birch")
-}
-
-func (a *App) ClearLogs() {
-	*ignoreLines = *linesCount
-	a.LoadLog()
+	shouldLoadLog = false
 }

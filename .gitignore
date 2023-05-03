@@ -5,3 +5,5 @@ test
 build/windows/installer/tmp
 frontend/wailsjs
 build/windows/installer/wails_tools.nsh
+*.syso
+notes.txt

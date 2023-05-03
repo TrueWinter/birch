@@ -3,7 +3,6 @@ import './app.css';
 
 import {
 	LoadLog,
-	ClearLogs,
 	GetSettings,
 	ChangeSetting,
 	BoolSettingChanged
@@ -131,9 +130,24 @@ runtime.EventsOn('updateCheck', () => {
 });
 
 window.advancedSearch = false;
+let logId = 0;
 runtime.EventsOn('log', (d) => {
+	if (!d.trim()) return;
+
 	// Some log lines have multiple lines, so this is needed to split them properly
-	logLines = d.split('\n[');
+	let v = document.getElementById('viewer');
+	d.split('\n[').forEach(text => {
+		const id = ++logId;
+		let elem = document.createElement('div');
+		elem.classList.add('log-line');
+		elem.dataset.logId = id;
+		elem.innerText = bracketFix(text);
+		logLines.push({
+			id,
+			text: bracketFix(text)
+		});
+		v.appendChild(elem);
+	});
 
 	if (advancedSearch) {
 		asSearch();
@@ -169,16 +183,17 @@ document.getElementById('viewer').addEventListener('scroll', () => {
 
 window.search = () => {
 	advancedSearch = false;
+	document.getElementById('search').placeholder = '';
 	var searchFor = document.getElementById('search').value;
-	var output = [];
 
 	for (var i = 0; i < logLines.length; i++) {
-		if (logLines[i].toLowerCase().includes(searchFor.toLowerCase())) {
-			output.push(bracketFix(logLines[i]));
+		let elem = document.querySelector(`.log-line[data-log-id="${logLines[i].id}"]`);
+		if (logLines[i].text.toLowerCase().includes(searchFor.toLowerCase())) {
+			elem.style.display = 'block';
+		} else {
+			elem.style.display = 'none';
 		}
 	}
-
-	document.getElementById('viewer').innerText = output.join('\n');
 
 	if (!isUserScrolling) {
 		document.getElementById('viewer').scrollTo(0, document.getElementById('viewer').scrollHeight);
@@ -189,17 +204,20 @@ window.showASSearch = () => {
 	document.getElementById('advanced-search').style.display = 'unset';
 	document.getElementById('main').style.filter = 'blur(5px)';
 
-	clearASInputs();
-	addASInput();
+	if (document.getElementById('as-inputs').children.length === 0) {
+		addASInput();
+	}
 };
 
 window.hideASSearch = () => {
 	document.getElementById('advanced-search').style.display = 'none';
 	document.getElementById('main').style.filter = 'unset';
-}
-;
+};
+
 window.clearASInputs = () => {
 	document.getElementById('as-inputs').innerHTML = '';
+	document.getElementById('as-search-mode').value = 'and';
+	addASInput();
 };
 
 window.addASInput = () => {
@@ -214,30 +232,42 @@ window.addASInput = () => {
 
 window.asSearch = () => {
 	advancedSearch = true;
+	document.getElementById('search').placeholder = 'Using advanced search';
 	var inputs = document.getElementsByClassName('as-input');
 	var searchMode = document.getElementById('as-search-mode').value;
 
-	var output = [];
-
-	for (var i = 0; i < logLines.length; i++) {
+	for (let i = 0; i < logLines.length; i++) {
+		let elem = document.querySelector(`.log-line[data-log-id="${logLines[i].id}"]`);
+		console.log('asSearch', searchMode, elem);
 		switch (searchMode) {
 			case 'and':
-				var trueSearchNum = 0;
+				let matchesForAndSearch = 0;
 				for (let j = 0; j < inputs.length; j++) {
-					if (logLines[i].toLowerCase().includes(inputs[j].value.toLowerCase())) {
-						trueSearchNum++;
+					if (logLines[i].text.toLowerCase().includes(inputs[j].value.toLowerCase())) {
+						matchesForAndSearch++;
 					}
 				}
 
-				if (trueSearchNum === inputs.length) {
-					output.push(bracketFix(logLines[i]));
+				// If this log line matches all searched terms, show it
+				if (matchesForAndSearch === inputs.length) {
+					elem.style.display = 'block';
+				} else {
+					elem.style.display = 'none';
 				}
 				break;
 			case 'or':
+				let matchesForOrSearch = 0;
 				for (let j = 0; j < inputs.length; j++) {
-					if (logLines[i].toLowerCase().includes(inputs[j].value.toLowerCase())) {
-						output.push(bracketFix(logLines[i]));
+					if (logLines[i].text.toLowerCase().includes(inputs[j].value.toLowerCase())) {
+						matchesForOrSearch++;
 					}
+				}
+
+				// If this log line matches any searched terms, show it
+				if (matchesForOrSearch > 0) {
+					elem.style.display = 'block';
+				} else {
+					elem.style.display = 'none';
 				}
 				break;
 			default:
@@ -245,78 +275,11 @@ window.asSearch = () => {
 		}
 	}
 
-	document.getElementById('viewer').innerText = output.join('\n');
 	document.getElementById('viewer').scrollTo(0, document.getElementById('viewer').scrollHeight);
 	hideASSearch();
 };
 
 window.clearLogs = () => {
-	ClearLogs();
+	window.logLines = [];
+	window.search();
 }
-
-// Notes for future advanced search option
-/**
- * // Must have "spy" and either "TrueWinter" or "[CONSOLE]"
- * {
- *		"search": "spy",
- *		"and": {
- * 			"search": "TrueWinter",
- * 			"or": {
- * 				"search": "[CONSOLE]"
- * 			}
- * 		}
- * }
- */
-
-/**
- * // Must have "spy" and "TrueWinter" and "shepherd"
- * // and either "post office" or "postbox"
- * {
- * 		"search": "spy",
- * 		"and": {
- * 			"search": "TrueWinter",
- * 			"and": {
- * 				"search": "shepherd",
- * 				"and": {
- * 					"search": "post office",
- * 					"or": {
- * 						"search": "postbox"
- * 					}
- * 				}
- * 			}
- * 		}
- * }
- */
-
-/**
- * // Will match either "socialspy" or "localspy"
- * // (but only if the message containing "localspy"
- * // also contains "how do i create a shop")
- * {
- * 		"search": "socialspy",
- * 		"or": {
- * 			"search" : "localspy",
- * 			"and": {
- * 				"search": "how do i make a shop"
- * 			}
- * 		}
- * }
- */
-
-/**
- * // Match either:
- * // - "socialspy" and "xray"
- * // - "localspy" and "diamonds"
- * {
- * 		"search": "socialspy",
- * 		"and": {
- * 			"search": "xray"
- * 		},
- *  	"or": {
- * 			"search": "localspy",
- * 			"and": {
- * 				"search": "diamonds"
- * 			}
- * 		}
- * }
- */
