@@ -281,5 +281,6 @@ window.asSearch = () => {
 
 window.clearLogs = () => {
 	window.logLines = [];
+	document.getElementById('viewer').innerHTML = '';
 	window.search();
 }

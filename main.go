@@ -8,8 +8,6 @@ import (
 	"os"
 	"os/user"
 
-	//"sync"
-
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
@@ -21,8 +19,8 @@ var assets embed.FS
 
 type BirchConfig struct {
 	MinecraftDirectory string
-	IgnoreOldLogs bool
-	SkipUpdateCheck bool
+	IgnoreOldLogs      bool
+	SkipUpdateCheck    bool
 }
 
 var config BirchConfig
@@ -32,7 +30,7 @@ var birchConfigDir string
 
 func ui(app *App) {
 	err := wails.Run(&options.App{
-		Title:  "Birch",
+		Title: "Birch",
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
@@ -40,8 +38,8 @@ func ui(app *App) {
 			WebviewUserDataPath: birchConfigDir + "\\wv2",
 		},
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
-		OnStartup: app.startup,
-		OnDomReady: app.ready,
+		OnStartup:        app.startup,
+		OnDomReady:       app.ready,
 		Bind: []interface{}{
 			app,
 		},
@@ -64,7 +62,7 @@ func exists(file string) bool {
 
 func SaveConfig() {
 	file, _ := json.MarshalIndent(config, "", " ")
-		ioutil.WriteFile(birchConfigDir + "\\config.json", file, os.ModePerm)
+	ioutil.WriteFile(birchConfigDir + sep() + "config.json", file, os.ModePerm)
 }
 
 func main() {
@@ -80,19 +78,19 @@ func main() {
 		log.Fatalf("Failed to get user's home directory")
 	}
 
-	userAppdataDir = userHomeDir + "\\AppData\\Roaming";
-	birchConfigDir = userAppdataDir + "\\TrueWinter\\Birch";
-	if (!exists(userAppdataDir + "\\TrueWinter")) {
+	userAppdataDir = getAppDataDir(userHomeDir)
+	birchConfigDir = getConfigDir(userHomeDir)
+	if !exists(birchConfigDir) {
 		os.MkdirAll(birchConfigDir, os.ModePerm)
 	}
 
-	if (!exists(birchConfigDir + "\\config.json")) {
-		minecraftDir := userAppdataDir + "\\.minecraft";
+	if !exists(birchConfigDir + sep() + "config.json") {
+		minecraftDir := getMinecraftDir(userHomeDir)
 		config.MinecraftDirectory = minecraftDir
 
-		SaveConfig();
+		SaveConfig()
 	} else {
-		configFile, err := ioutil.ReadFile(birchConfigDir + "\\config.json")
+		configFile, err := ioutil.ReadFile(birchConfigDir + sep() + "config.json")
 		if err != nil {
 			log.Fatal(err.Error())
 		}
@@ -103,7 +101,7 @@ func main() {
 		}
 	}
 
-	latestLogFile = config.MinecraftDirectory + "\\logs\\latest.log"
+	latestLogFile = config.MinecraftDirectory + sep() + "logs" + sep() + "latest.log"
 
 	app := NewApp()
 	ui(app)

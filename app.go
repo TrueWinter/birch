@@ -173,7 +173,7 @@ func (a *App) ChangeSetting(setting string) {
 		case "MinecraftDirectory":
 			dialogOptions := runtime.OpenDialogOptions{
 				DefaultDirectory: userAppdataDir,
-				Title: "Select your Minecraft installation folder",
+				Title: "Select your Minecraft installation folder (not your logs folder)",
 			}
 
 			dir, err := runtime.OpenDirectoryDialog(a.ctx, dialogOptions)
