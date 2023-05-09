@@ -83,11 +83,13 @@ window.addEventListener('resize', () => {
 window.showSettings = () => {
 	document.getElementById('settings').style.display = 'unset';
 	document.getElementById('main').style.filter = 'blur(5px)';
+	showOverlay();
 }
 
 window.hideSettings = () => {
 	document.getElementById('settings').style.display = 'none';
 	document.getElementById('main').style.filter = 'unset';
+	hideOverlay();
 }
 
 window.changeSetting = (setting) => {
@@ -203,6 +205,7 @@ window.search = () => {
 window.showASSearch = () => {
 	document.getElementById('advanced-search').style.display = 'unset';
 	document.getElementById('main').style.filter = 'blur(5px)';
+	showOverlay();
 
 	if (document.getElementById('as-inputs').children.length === 0) {
 		addASInput();
@@ -212,12 +215,14 @@ window.showASSearch = () => {
 window.hideASSearch = () => {
 	document.getElementById('advanced-search').style.display = 'none';
 	document.getElementById('main').style.filter = 'unset';
+	hideOverlay();
 };
 
 window.clearASInputs = () => {
 	document.getElementById('as-inputs').innerHTML = '';
 	document.getElementById('as-search-mode').value = 'and';
 	addASInput();
+	search();
 };
 
 window.addASInput = () => {
@@ -275,7 +280,9 @@ window.asSearch = () => {
 		}
 	}
 
-	document.getElementById('viewer').scrollTo(0, document.getElementById('viewer').scrollHeight);
+	if (!isUserScrolling) {
+		document.getElementById('viewer').scrollTo(0, document.getElementById('viewer').scrollHeight);
+	}
 	hideASSearch();
 };
 
@@ -283,4 +290,12 @@ window.clearLogs = () => {
 	window.logLines = [];
 	document.getElementById('viewer').innerHTML = '';
 	window.search();
-}
+};
+
+window.showOverlay = () => {
+	document.getElementById('overlay').style.display = 'block';
+};
+
+window.hideOverlay = () => {
+	document.getElementById('overlay').style.display = 'none';
+};

@@ -29,19 +29,11 @@ func getMinecraftDir(userDir string) string {
 }
 
 func isWindows() bool {
-	if runtime.GOOS == "windows" {
-		return true
-	}
-
-	return false
+	return runtime.GOOS == "windows"
 }
 
 func isMac() bool {
-	if runtime.GOOS == "darwin" {
-		return true
-	}
-
-	return false
+	return runtime.GOOS == "darwin"
 }
 
 func sep() string {
