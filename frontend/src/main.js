@@ -109,12 +109,23 @@ window.openUrl = (url) => {
 	runtime.BrowserOpenURL(url);
 }
 
+function isVersionNewer(newVersion, oldVersion) {
+	newVersion = newVersion.replace(/^v/, '');
+	oldVersion = oldVersion.replace(/^v/, '');
+
+	let newVersionSplit = newVersion.split('.').map(e => parseInt(e));
+	let oldVersionSplit = oldVersion.split('.').map(e => parseInt(e));
+
+	if (newVersionSplit.length !== 3 || oldVersionSplit.length !== 3) return false;
+	return newVersionSplit.map((v, i) => oldVersionSplit[i] < v).includes(true);
+}
+
 window.updateCheck = async () => {
 	let resp = await fetch('https://api.github.com/repos/TrueWinter/Birch/releases/latest');
 	if (resp.status !== 200) return;
 	let release = await resp.json();
 
-	if (release.tag_name > `v${window.VERSION}`) {
+	if (isVersionNewer(release.tag_name, `v${window.VERSION}`)) {
 		let link = document.createElement('a');
 		link.href = 'javascript:void(0)';
 		link.setAttribute('onclick', `openUrl('${release.html_url}')`);
