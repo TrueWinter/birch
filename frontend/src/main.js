@@ -59,15 +59,15 @@ function updateDomSettings() {
 		let domSettings = document.getElementsByClassName('setting');
 		window.settings = JSON.parse(settings);
 		
-		for (let setting in settings) {
+		for (let setting in window.settings) {
 			for (let i = 0; i < domSettings.length; i++) {
 				if (domSettings[i].dataset.setting === setting) {
 					switch (domSettings[i].dataset.type) {
 						case 'text':
-							domSettings[i].innerText = settings[setting];
+							domSettings[i].innerText = window.settings[setting];
 							break
 						case 'bool':
-							domSettings[i].checked = settings[setting];
+							domSettings[i].checked = window.settings[setting];
 							break;
 					}
 				}
