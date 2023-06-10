@@ -168,7 +168,14 @@ func (a *App) BoolSettingChanged(setting string, value bool) {
 	shouldLoadLog = false
 }
 
-func (a *App) ChangeSetting(setting string) {
+type SettingData struct {
+	Key string `json:"key"`
+	Value string `json:"value"`
+}
+
+func (a *App) ChangeSetting(setting string, data SettingData) {
+	skipReload := false
+
 	switch setting {
 		case "MinecraftDirectory":
 			dialogOptions := runtime.OpenDialogOptions{
@@ -189,9 +196,21 @@ func (a *App) ChangeSetting(setting string) {
 
 			config.MinecraftDirectory = dir
 			SaveConfig()
+		case "SavedSearchQueries":
+			println("search", data.Key, data.Value)
+			if data.Value == "" {
+				delete(config.SavedSearchQueries, data.Key)
+			} else {
+				config.SavedSearchQueries[data.Key] = data.Value
+			}
+			SaveConfig()
+			skipReload = true
+			runtime.EventsEmit(a.ctx, "savedSearchQueries")
 	}
 
-	runtime.EventsEmit(a.ctx, "settingsChanged")
-	runtime.EventsEmit(a.ctx, "message", "Settings changed, please restart Birch")
-	shouldLoadLog = false
+	if !skipReload {
+		runtime.EventsEmit(a.ctx, "settingsChanged")
+		runtime.EventsEmit(a.ctx, "message", "Settings changed, please restart Birch")
+		shouldLoadLog = false
+	}
 }

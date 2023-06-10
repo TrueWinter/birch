@@ -18,7 +18,7 @@
 	</div>-->
 
 	<div id="main">
-		<div id="overlay" style="display: none;"></div>
+		<div class="overlay" data-overlay-id="main" style="display: none;"></div>
 		<div class="header">
 			<div id="clearLogsBtn" class="input-box">
 				<button class="input" onclick="clearLogs()">Clear Logs</button>
@@ -78,6 +78,7 @@
 	</div>
 
 	<div id="advanced-search" style="display:none;">
+		<div class="overlay" data-overlay-id="search" style="display: none;"></div>
 		<div onclick="hideASSearch()" style="display: inline; float: right; color: coral; cursor: pointer;">X</div>
 		<h1 style="margin-top: 4px;margin-bottom: 4px;">Advanced Search</h1>
 		<div style="font-size: small;">Press the search button in the header to return to simple search mode</div>
@@ -96,7 +97,31 @@
 			<button class="input" onclick="addASInput()">+</button>
 			<button class="input" onclick="asSearch()">Search</button>
 			<button class="input" onclick="clearASInputs()" style="margin-left: 8px;background-color: salmon;">Reset</button>
+			<button class="input" onclick="showSaveSearch()">Save</button>
+			<button class="input" onclick="showLoadSavedSearch()">Load</button>
 		</div>
+	</div>
+
+	<div id="save-search" style="display:none;">
+		<div onclick="hideSaveSearch()" style="display: inline; float: right; color: coral; cursor: pointer;">X</div>
+		<h1 style="margin-top: 4px;margin-bottom: 4px;">Save&nbsp;Search&nbsp;Query</h1>
+		<hr/>
+
+		<div class="input-box">
+			Name: <input class="input" type="text" id="save-search-name" />
+		</div>
+
+		<div class="input-box">
+			<button class="input" id="save-search-btn" onclick="saveSearchQuery()">Save</button>
+		</div>
+	</div>
+
+	<div id="load-saved-search" style="display:none;">
+		<div onclick="hideLoadSavedSearch()" style="display: inline; float: right; color: coral; cursor: pointer;">X</div>
+		<h1 style="margin-top: 4px;margin-bottom: 4px;">Load&nbsp;Saved&nbsp;Search&nbsp;Query</h1>
+		<hr/>
+
+		<div id="saved-searches"></div>
 	</div>
 
 	<script src="./src/main.js" type="module"></script>

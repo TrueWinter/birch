@@ -56,11 +56,11 @@ window.addEventListener('load', () => {
 
 function updateDomSettings() {
 	GetSettings().then((settings) => {
-		var domSettings = document.getElementsByClassName('setting');
-		settings = JSON.parse(settings);
+		let domSettings = document.getElementsByClassName('setting');
+		window.settings = JSON.parse(settings);
 		
-		for (var setting in settings) {
-			for (var i = 0; i < domSettings.length; i++) {
+		for (let setting in settings) {
+			for (let i = 0; i < domSettings.length; i++) {
 				if (domSettings[i].dataset.setting === setting) {
 					switch (domSettings[i].dataset.type) {
 						case 'text':
@@ -92,8 +92,9 @@ window.hideSettings = () => {
 	hideOverlay();
 }
 
-window.changeSetting = (setting) => {
-	ChangeSetting(setting);
+window.changeSetting = (setting, value) => {
+	console.log('set', setting, value);
+	ChangeSetting(setting, value);
 }
 
 runtime.EventsOn('changed', () => {
@@ -152,7 +153,7 @@ runtime.EventsOn('log', (d) => {
 	});
 
 	if (advancedSearch) {
-		asSearch();
+		asSearch(false);
 	} else {
 		search();
 	}
@@ -172,7 +173,7 @@ function bracketFix(str) {
 	str : `[${str}`
 }
 
-var isUserScrolling = false;
+let isUserScrolling = false;
 document.getElementById('viewer').addEventListener('scroll', () => {
 	isUserScrolling = true;
 
@@ -186,9 +187,9 @@ document.getElementById('viewer').addEventListener('scroll', () => {
 window.search = () => {
 	advancedSearch = false;
 	document.getElementById('search').placeholder = '';
-	var searchFor = document.getElementById('search').value;
+	let searchFor = document.getElementById('search').value;
 
-	for (var i = 0; i < logLines.length; i++) {
+	for (let i = 0; i < logLines.length; i++) {
 		let elem = document.querySelector(`.log-line[data-log-id="${logLines[i].id}"]`);
 		if (logLines[i].text.toLowerCase().includes(searchFor.toLowerCase())) {
 			elem.style.display = 'block';
@@ -218,28 +219,30 @@ window.hideASSearch = () => {
 	hideOverlay();
 };
 
-window.clearASInputs = () => {
+window.clearASInputs = (add=true) => {
 	document.getElementById('as-inputs').innerHTML = '';
 	document.getElementById('as-search-mode').value = 'and';
-	addASInput();
+	if (add) {
+		addASInput();
+	}
 	search();
 };
 
-window.addASInput = () => {
-	var e = document.createElement('div');
+window.addASInput = (value='') => {
+	let e = document.createElement('div');
 	e.innerHTML = `
 	<div class="input-box">
-		<input class="input as-input" type="text" autocomplete="off">
+		<input class="input as-input" type="text" autocomplete="off" value="${value}">
 	</div>`;
 
 	document.getElementById('as-inputs').appendChild(e);
 };
 
-window.asSearch = () => {
+window.asSearch = (hide=true) => {
 	advancedSearch = true;
 	document.getElementById('search').placeholder = 'Using advanced search';
-	var inputs = document.getElementsByClassName('as-input');
-	var searchMode = document.getElementById('as-search-mode').value;
+	let inputs = document.getElementsByClassName('as-input');
+	let searchMode = document.getElementById('as-search-mode').value;
 
 	for (let i = 0; i < logLines.length; i++) {
 		let elem = document.querySelector(`.log-line[data-log-id="${logLines[i].id}"]`);
@@ -283,7 +286,137 @@ window.asSearch = () => {
 	if (!isUserScrolling) {
 		document.getElementById('viewer').scrollTo(0, document.getElementById('viewer').scrollHeight);
 	}
-	hideASSearch();
+
+	if (hide) {
+		hideASSearch();
+	}
+};
+
+window.showSaveSearch = () => {
+	if (getSearchQueryToSave().inputs.length === 0) {
+		return alert('Cannot save blank search query');
+	}
+
+	document.getElementById('save-search').style.display = 'unset';
+	document.getElementById('advanced-search').style.filter = 'blur(5px)';
+	showOverlay('search');
+};
+
+window.hideSaveSearch = () => {
+	document.getElementById('save-search').style.display = 'none';
+	document.getElementById('advanced-search').style.filter = 'unset';
+	document.getElementById('save-search-name').value = '';
+	document.getElementById('save-search-btn').removeAttribute('disabled');
+	hideOverlay('search');
+};
+
+runtime.EventsOn('savedSearchQueries', () => {
+	hideSaveSearch();
+	hideLoadSavedSearch();
+	updateDomSettings();
+});
+
+window.getSearchQueryToSave = () => {
+	let s = {
+		mode: document.getElementById('as-search-mode').value,
+		inputs: [...document.getElementsByClassName('as-input')].map(e => e.value).filter(e => e)
+	};
+
+	return s;
+};
+
+window.saveSearchQuery = () => {
+	let name = document.getElementById('save-search-name').value;
+	if (!name || !name.trim()) {
+		return alert('Cannot save search query with blank name');
+	}
+
+	document.getElementById('save-search-btn').setAttribute('disabled', 'true');
+
+	changeSetting('SavedSearchQueries', {
+		key: name,
+		value: btoa(JSON.stringify(getSearchQueryToSave()))
+	});
+};
+
+window.loadSavedSearch = (e) => {
+	clearASInputs(false);
+
+	let data = JSON.parse(atob(e.parentElement.dataset.data));
+
+	document.getElementById('as-search-mode').value = data.mode;
+
+	for (let search of data.inputs) {
+		addASInput(search);
+	}
+
+	hideLoadSavedSearch();
+};
+
+window.deleteSavedSearch = (e) => {
+	let name = e.parentElement.dataset.name;
+	changeSetting('SavedSearchQueries', {
+		key: name,
+		value: null
+	});
+};
+
+function createLoadSavedSearchElem(name, data) {
+	let d = document.createElement('div');
+	d.className = 'input-box saved-search-container'
+	d.style.marginBottom = '8px';
+	d.dataset.name = name;
+	d.dataset.data = data;
+
+	let s = document.createElement('span');
+	s.className = 'saved-search-text';
+	s.innerText = name;
+
+	let b = document.createElement('button');
+	b.className = 'input saved-search-button';
+	b.style.cursor = 'pointer';
+	b.style.marginLeft = '8px';
+	b.setAttribute('onclick', 'loadSavedSearch(this)');
+	b.innerText = 'Load';
+
+	let b2 = document.createElement('button');
+	b2.className = 'input saved-search-button';
+	b2.style.cursor = 'pointer';
+	b2.style.backgroundColor = 'coral';
+	b2.style.marginLeft = '8px';
+	b2.setAttribute('onclick', 'deleteSavedSearch(this)');
+	b2.innerText = 'Delete';
+
+	d.appendChild(s);
+	d.appendChild(b);
+	d.appendChild(b2);
+
+	return d;
+}
+
+window.showLoadSavedSearch = () => {
+	document.getElementById('load-saved-search').style.display = 'unset';
+	document.getElementById('advanced-search').style.filter = 'blur(5px)';
+	showOverlay('search');
+
+	let searches = document.getElementById('saved-searches');
+	searches.innerHTML = '';
+	let saved = settings.SavedSearchQueries || {};
+
+	if (Object.keys(saved).length === 0) {
+		searches.innerText = 'No saved search queries';
+		return;
+	}
+
+	for (let search in saved) {
+		searches.appendChild(createLoadSavedSearchElem(search, saved[search]));
+	}
+};
+
+window.hideLoadSavedSearch = () => {
+	document.getElementById('load-saved-search').style.display = 'none';
+	document.getElementById('advanced-search').style.filter = 'unset';
+	hideOverlay('search');
 };
 
 window.clearLogs = () => {
@@ -292,10 +425,12 @@ window.clearLogs = () => {
 	window.search();
 };
 
-window.showOverlay = () => {
-	document.getElementById('overlay').style.display = 'block';
+window.showOverlay = (id='main') => {
+	let ov = document.querySelector(`.overlay[data-overlay-id="${id}"`);
+	ov.style.display = 'block';
+	ov.style.zIndex = parseInt(window.getComputedStyle(ov.parentElement).zIndex || 0) + 50;
 };
 
-window.hideOverlay = () => {
-	document.getElementById('overlay').style.display = 'none';
+window.hideOverlay = (id='main') => {
+	document.querySelector(`.overlay[data-overlay-id="${id}"`).style.display = 'none';
 };

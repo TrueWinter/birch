@@ -21,6 +21,7 @@ type BirchConfig struct {
 	MinecraftDirectory string
 	IgnoreOldLogs      bool
 	SkipUpdateCheck    bool
+	SavedSearchQueries map[string]string
 }
 
 var config BirchConfig
@@ -98,6 +99,11 @@ func main() {
 		err = json.Unmarshal(configFile, &config)
 		if err != nil {
 			log.Fatal(err.Error())
+		}
+
+		if (config.SavedSearchQueries == nil) {
+			config.SavedSearchQueries = make(map[string]string)
+			SaveConfig()
 		}
 	}
 
