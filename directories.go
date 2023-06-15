@@ -2,6 +2,10 @@ package main
 
 import (
 	"runtime"
+
+	"golang.org/x/text/encoding"
+	"golang.org/x/text/encoding/charmap"
+	"golang.org/x/text/encoding/unicode"
 )
 
 func getAppDataDir(userDir string) string {
@@ -42,4 +46,14 @@ func sep() string {
 	}
 
 	return "/"
+}
+
+func getCharMap() encoding.Encoding {
+	if isWindows() {
+		return charmap.ISO8859_1
+	} else if isMac() {
+		return unicode.UTF8
+	}
+
+	panic("Birch only runs on Windows and Mac at this time")
 }

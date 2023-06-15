@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/text/encoding/charmap"
 	"golang.org/x/text/transform"
 
 	"github.com/radovskyb/watcher"
@@ -119,7 +118,7 @@ func (a *App) LoadLog() {
 	// Only load what's changed since last time
 	file.Seek(lastFileSize, io.SeekStart)
 
-	reader := transform.NewReader(file, charmap.ISO8859_1.NewDecoder())
+	reader := transform.NewReader(file, getCharMap().NewDecoder())
 	scanner := bufio.NewScanner(reader)
 	newLogs := []string{}
 
