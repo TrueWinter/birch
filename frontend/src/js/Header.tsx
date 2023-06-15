@@ -34,8 +34,17 @@ export default function Header({
 		setSearchQuery(searchRef.current.value)
 	}
 
-	useEffect(() => {
+	function handleResize() {
 		setHeaderHeight(headerRef.current.clientHeight);
+	}
+
+	useEffect(() => {
+		handleResize();
+		window.addEventListener('resize', handleResize);
+
+		return () => {
+			window.removeEventListener('resize', handleResize);
+		}
 	}, [])
 
 	useEffect(() => {

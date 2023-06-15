@@ -55,25 +55,29 @@ export default function LogViewer({
 		}
 	}
 
-	useEffect(() => {
-		window.addEventListener('resize', () => {
-			handleResize();
-		});
+	function handleScroll() {
+		isUserScrolling.current = true;
 
-		viewerRef.current.addEventListener('scroll', () => {
-			isUserScrolling.current = true;
-
-			if (viewerRef.current.scrollHeight ===
-				viewerRef.current.scrollTop +
-				viewerRef.current.clientHeight) {
-					isUserScrolling.current = false;
-				}
-
-			return () => {
+		if (viewerRef.current.scrollHeight ===
+			viewerRef.current.scrollTop +
+			viewerRef.current.clientHeight) {
 				isUserScrolling.current = false;
 			}
-		});
-	}, []);
+
+		return () => {
+			isUserScrolling.current = false;
+		}
+	}
+
+	useEffect(() => {
+		window.addEventListener('resize', handleResize);
+		viewerRef.current.addEventListener('scroll', handleScroll);
+
+		return () => {
+			window.removeEventListener('resize', handleResize);
+			viewerRef.current.removeEventListener('scroll', handleScroll);
+		}
+	}, [headerHeight]);
 
 	useEffect(() => {
 		if (!isUserScrolling.current) {
