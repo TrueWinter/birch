@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"io"
 	"log"
 	"os"
@@ -149,9 +148,8 @@ func (a *App) LoadLog() {
 	runtime.EventsEmit(a.ctx, "log", strings.Join(newLogs, "\n"))
 }
 
-func (a *App) GetSettings() string {
-	data, _ := json.Marshal(config)
-	return string(data)
+func (a *App) GetSettings() BirchConfig {
+	return config
 }
 
 func (a *App) BoolSettingChanged(setting string, value bool) {

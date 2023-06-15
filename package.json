@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "@types/semver": "^7.5.0",
+    "@types/uuid": "^9.0.2",
+    "semver": "^7.5.1",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "typescript-plugin-css-modules": "^5.0.1"
+  }
+}

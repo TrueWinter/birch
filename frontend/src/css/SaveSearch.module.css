@@ -1,0 +1,30 @@
+.heading {
+	margin-top: 4px;
+	margin-bottom: 4px;
+}
+
+.popup {
+	position: fixed;
+	z-index: 1050;
+	top: 50%;
+	left: 50%;
+	background-color: #222222;
+	padding: 25px;
+	border-radius: 10px;
+	transform: translate(-50%, -50%);
+	max-height: 50%;
+	overflow-y: auto;
+}
+
+.mb8 {
+	margin-bottom: 8px;
+}
+
+.delete {
+	background-color: coral !important;
+}
+
+.button {
+	margin-left: 8px;
+	cursor: pointer;
+}

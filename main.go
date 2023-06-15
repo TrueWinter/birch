@@ -18,10 +18,12 @@ import (
 var assets embed.FS
 
 type BirchConfig struct {
-	MinecraftDirectory string
-	IgnoreOldLogs      bool
-	SkipUpdateCheck    bool
-	SavedSearchQueries map[string]string
+	// Explicitly setting the JSON key is required for Wails
+	// to add this struct to the TypeScript definition file
+	MinecraftDirectory string `json:"MinecraftDirectory"`
+	IgnoreOldLogs      bool `json:"IgnoreOldLogs"`
+	SkipUpdateCheck    bool `json:"SkipUpdateCheck"`
+	SavedSearchQueries map[string]string `json:"SavedSearchQueries"`
 }
 
 var config BirchConfig

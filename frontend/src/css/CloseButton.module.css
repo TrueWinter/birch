@@ -1,0 +1,6 @@
+.closeButton {
+	display: inline;
+	float: right;
+	color: coral;
+	cursor: pointer;
+}

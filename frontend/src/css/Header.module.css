@@ -1,0 +1,32 @@
+.search {
+	padding: 2vh 0 1vh 0;
+	text-align: center;
+}
+
+.settingsBtnImg {
+	height: 40px;
+	position: fixed;
+	top: 12px;
+	right: 0;
+	margin: 1vh;
+	color: white;
+	cursor: pointer;
+}
+
+.clearLogsBtn {
+	position: fixed;
+	top: 18px;
+	left: 0;
+	margin: 1vh;
+	cursor: pointer;
+}
+
+.useAdvancedSearchBtn {
+	font-size: small;
+	margin-top: 8px;
+	cursor: pointer;
+	color: cornflowerblue;
+	width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+}
