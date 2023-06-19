@@ -1,9 +1,11 @@
+import { useEffect, useState } from 'react'
 import CloseButton from './CloseButton'
-
-import css from '../css/SaveSearch.module.css'
+import Skeleton from './Skeleton'
 
 import { GetSettings } from '../../wailsjs/go/main/App'
-import { useEffect, useRef, useState } from 'react'
+
+import css from '../css/SaveSearch.module.css'
+import 'react-loading-skeleton/dist/skeleton.css'
 
 interface LoadSavedSearchProps {
 	setLoadSavedSearchShown: Function
@@ -24,6 +26,7 @@ export default function LoadSavedSearch({
 	loadSavedSearchRenderCount
 }: LoadSavedSearchProps) {
 	const [savedSearchQueries, setSavedSearchQueries] = useState([] as SavedSearchQuery[]);
+	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
 		GetSettings().then(settings => {
@@ -35,6 +38,7 @@ export default function LoadSavedSearch({
 			}));
 
 			setSavedSearchQueries(toSave);
+			setLoading(false);		
 		});
 	}, [loadSavedSearchRenderCount]);
 
@@ -52,6 +56,8 @@ export default function LoadSavedSearch({
 						<button className={['input', css.button, css.delete].join(' ')} onClick={() => deleteSavedSearch(e.name)}>Delete</button>
 					</div>
 				)}
+
+				{loading && <Skeleton height="34px" />}
 			</div>
 		</div>
 	)

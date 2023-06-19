@@ -1,0 +1,22 @@
+.popup {
+	position: fixed;
+	z-index: 1050;
+	top: 50%;
+	left: 50%;
+	background-color: #222222;
+	padding: 25px;
+	border-radius: 10px;
+	transform: translate(-50%, -50%);
+	max-height: 50%;
+	overflow-y: auto;
+}
+
+.heading {
+	margin-top: 4px;
+	margin-bottom: 4px;
+}
+
+.button {
+	padding: 4px;
+	cursor: pointer;
+}

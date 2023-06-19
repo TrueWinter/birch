@@ -7,6 +7,7 @@ import Overlay from './Overlay'
 import Settings from './Settings'
 import AdvancedSearch, { SearchQuery, SearchQueryWithTerms } from './AdvancedSearch'
 import UpdateNotification from './UpdateNotification'
+import FileSelector from './FileSelector'
 
 import '../style.css'
 import '../app.css'
@@ -32,9 +33,12 @@ function bracketFix(str: string) {
 
 export default function App() {
 	const [logs, setLogs] = useState((JSON.parse(sessionStorage.getItem('logs') as string) || []) as Log[]);
+	const [loading, setLoading] = useState(true);
 	const [skipLogFilter, setSkipLogFilter] = useState(false);
 	const [settings, setSettings] = useState({} as BirchConfig);
 	const [settingsShown, setSettingsShown] = useState(false);
+	const [fileSelectorShown, setFileSelectorShown] = useState(false);
+	const [nonLatestFileLoaded, setNonLatestFileLoaded] = useState(false);
 	const [headerHeight, setHeaderHeight] = useState(0);
 	const [advancedSearchShown, setAdvancedSearchShown] = useState(false);
 	const [searchQuery, setSearchQuery] = useState('' as string | SearchQueryWithTerms);
@@ -69,7 +73,7 @@ export default function App() {
 		}
 	}
 
-	function resetLogs(msg: Log) {
+	function resetLogs(msg: Log | null) {
 		setLogs(msg ? [msg] : []);
 		sessionStorage.setItem('logs', '[]');
 	}
@@ -98,28 +102,48 @@ export default function App() {
 		getSettings();
 	}
 
-	function handleMessage(d: string) {
-		setSkipLogFilter(true);
+	function handleMessage(d: string, allowSearch: boolean) {
+		if (!allowSearch) {
+			setSkipLogFilter(true);
+		}
+
 		resetLogs({
 			id: uuid(),
 			text: d
 		});
 	}
 
+	function handleNonLatestFileLoaded() {
+		setNonLatestFileLoaded(true);
+		setFileSelectorShown(false);
+	}
+
+	function handleLoadStatus(status: boolean) {
+		setLoading(status);
+	}
+
+	function handleLogFileSelected() {
+		setFileSelectorShown(false);
+		resetLogs(null);
+	}
+
 	useEffect(() => {
 		runtime.EventsOn('log', handleLog);
+		runtime.EventsOn('setLoadStatus', handleLoadStatus);
 		runtime.EventsOn('changed', handleLogChange);
 		runtime.EventsOn('settingsChanged', handleSettingsChanged);
 		runtime.EventsOn('message', handleMessage);
 		runtime.EventsOn('error', handleMessage);
+		runtime.EventsOn('nonLatestFileLoaded', handleNonLatestFileLoaded);
+		runtime.EventsOn('logFileSelected', handleLogFileSelected);
 
 		app.LoadLog();
 		getSettings();
 
 		return () => {
 			runtime.EventsOff(
-				'log', 'changed', 'settingsChanged',
-				'message', 'error'
+				'log', 'setLoadStatus', 'changed', 'settingsChanged',
+				'message', 'error', 'nonLatestFileLoaded', 'logFileSelected'
 			);
 		}
 	}, [])
@@ -130,14 +154,15 @@ export default function App() {
 
 	return (
 		<>
-			<Overlay id="main" shown={settingsShown || advancedSearchShown} />
+			<Overlay id="main" shown={settingsShown || advancedSearchShown || fileSelectorShown} />
 			<Header showSettings={() => setSettingsShown(true)}
+				showFileSelector={() => setFileSelectorShown(true)}
 				setHeaderHeight={setHeaderHeight} clearLogs={resetLogs}
 				setAdvancedSearchShown={setAdvancedSearchShown} setSearchQuery={setSearchQuery}
-				searchQuery={searchQuery}
+				searchQuery={searchQuery} nonLatestFileLoaded={nonLatestFileLoaded}
 			/>
 			<div className="sep"></div>
-			<LogViewer logs={logs} headerHeight={headerHeight} searchQuery={searchQuery} skipFilter={skipLogFilter} />
+			<LogViewer logs={logs} headerHeight={headerHeight} searchQuery={searchQuery} skipFilter={skipLogFilter} loading={loading} />
 
 			{settingsShown && <Settings minecraftLocation={settings.MinecraftDirectory}
 				ignoreLogs={settings.IgnoreOldLogs} skipUpdateCheck={settings.SkipUpdateCheck} 
@@ -148,6 +173,8 @@ export default function App() {
 			{advancedSearchShown && <AdvancedSearch setAdvancedSearchShown={setAdvancedSearchShown}
 				setSearchQuery={setSearchQuery} searchQuery={searchQuery}
 			/>}
+
+			{fileSelectorShown && <FileSelector setFileSelectorShown={setFileSelectorShown} />}
 
 			<UpdateNotification />
 		</>

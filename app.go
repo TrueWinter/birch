@@ -2,10 +2,12 @@ package main
 
 import (
 	"bufio"
+	"compress/gzip"
 	"context"
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -24,7 +26,8 @@ var fileSize *int64
 var linesCount *int
 var didDoInitialLogIgnore bool
 var shouldLoadLog bool
-var hasWatcher bool
+var w *watcher.Watcher
+var fileToLoad string
 
 // NewApp creates a new App application struct
 func NewApp() *App {
@@ -39,17 +42,16 @@ func (a *App) startup(ctx context.Context) {
 	linesCount = new(int)
 	didDoInitialLogIgnore = false
 	shouldLoadLog = true
-	hasWatcher = false
+	fileToLoad = latestLogFile
 }
 
 func (a *App) ready(ctx context.Context) {
-	if hasWatcher {
+	if w != nil {
 		return
 	}
 
-	w := watcher.New()
+	w = watcher.New()
 	w.FilterOps(watcher.Write)
-	hasWatcher = true
 
 	go func () {
 		for {
@@ -88,13 +90,13 @@ func (a *App) ready(ctx context.Context) {
 	}
 }
 
-func (a *App) LoadLog() {
+func (a *App) LoadLog(shouldDelete bool) {
 	if !shouldLoadLog {
 		return
 	}
 
 	log.Println("Loading log")
-	file, err := os.Open(latestLogFile)
+	file, err := os.Open(fileToLoad)
 	if err != nil {
 		log.Println("Failed to read log file: " + err.Error())
 		runtime.EventsEmit(a.ctx, "error", "Failed to read log file: " + err.Error())
@@ -132,6 +134,8 @@ func (a *App) LoadLog() {
 
 	*linesCount = len(newLogs)
 
+	runtime.EventsEmit(a.ctx, "setLoadStatus", false)
+
 	// If no chat logs changed (often happens when a warning/error
 	// gets logged by Minecraft), don't do anything else.
 	if *linesCount == 0 {
@@ -145,6 +149,15 @@ func (a *App) LoadLog() {
 
 	log.Println("Emitting log")
 	runtime.EventsEmit(a.ctx, "log", strings.Join(newLogs, "\n"))
+
+	if shouldDelete && strings.HasPrefix(fileToLoad, os.TempDir()) {
+		file.Close()
+		log.Println("Will delete " + fileToLoad)
+		err := os.Remove(fileToLoad)
+		if err != nil {
+			log.Println("Failed to remove temporary file", err.Error())
+		}
+	}
 }
 
 func (a *App) GetSettings() BirchConfig {
@@ -209,5 +222,84 @@ func (a *App) ChangeSetting(setting string, data SettingData) {
 		runtime.EventsEmit(a.ctx, "settingsChanged")
 		runtime.EventsEmit(a.ctx, "message", "Settings changed, please restart Birch")
 		shouldLoadLog = false
+	}
+}
+
+func (a *App) loadLogFile(file string, filename string, delete bool) {
+	fileToLoad = file
+	didDoInitialLogIgnore = true
+	*fileSize = 0
+	*linesCount = 0
+	shouldLoadLog = true
+	if w != nil {
+		w.Close()
+	}
+
+	a.LoadLog(delete)
+	runtime.EventsEmit(a.ctx, "nonLatestFileLoaded")
+	runtime.WindowSetTitle(a.ctx, "Birch: " + filename)
+}
+
+func (a *App) unzip(f string) (string, error) {
+	file, err := os.Open(f)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	gz, gzErr := gzip.NewReader(file)
+	if gzErr != nil {
+		return "", err
+	}
+	gz.Close()
+
+	tempDir := os.TempDir()
+	tempFile, tempFileErr := os.CreateTemp(tempDir, "birch-*.log")
+	if tempFileErr != nil {
+		return "", tempFileErr
+	}
+
+	io.Copy(tempFile, gz)
+	tempFile.Close()
+	return tempFile.Name(), nil
+}
+
+func (a *App) OpenLogFile() {
+	dialogOptions := runtime.OpenDialogOptions{
+		DefaultDirectory: config.MinecraftDirectory + sep() + "logs",
+		Title: "Select the log file",
+		Filters: []runtime.FileFilter{
+			{
+				DisplayName: "Log files",
+				Pattern: "*.log;*.log.gz",
+			},
+		},
+	}
+
+	file, err := runtime.OpenFileDialog(a.ctx, dialogOptions)
+	if err != nil || file == "" {
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "error", "Failed to get selected file: " + err.Error(), true)
+		}
+
+		return
+	}
+
+	runtime.EventsEmit(a.ctx, "setLoadStatus", true)
+	runtime.EventsEmit(a.ctx, "logFileSelected")
+
+	if (strings.HasSuffix(file, ".log.gz")) {
+		log.Println(".log.gz", file)
+		log, err := a.unzip(file)
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "error", "Failed to load log: " + err.Error(), true)
+			return
+		}
+		a.loadLogFile(log, filepath.Base(file), true)
+	} else if (strings.HasSuffix(file, ".log")) {
+		log.Println(".log", file)
+		a.loadLogFile(file, filepath.Base(file), false)
+	} else {
+		runtime.EventsEmit(a.ctx, "error", "Failed to get selected file: file type not supported", true)
 	}
 }

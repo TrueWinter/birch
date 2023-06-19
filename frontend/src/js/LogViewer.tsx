@@ -1,18 +1,22 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react'
+import Skeleton from 'react-loading-skeleton'
 import LogLine from './LogLine'
+import { SearchQueryWithTerms } from './AdvancedSearch'
+import { Log } from './App'
+
+import 'react-loading-skeleton/dist/skeleton.css'
 import css from '../css/LogViewer.module.css'
-import { SearchQueryWithTerms } from './AdvancedSearch';
-import { Log } from './App';
 
 interface LogViewerProps {
 	logs: Log[]
 	headerHeight: number
 	searchQuery: SearchQueryWithTerms | string
-	skipFilter: boolean
+	skipFilter: boolean,
+	loading: boolean
 }
 
 export default function LogViewer({
-	logs, headerHeight, searchQuery, skipFilter
+	logs, headerHeight, searchQuery, skipFilter, loading
 }: LogViewerProps) {
 	const isUserScrolling = useRef(false);
 	const viewerRef = useRef(null as unknown as HTMLDivElement);
@@ -71,18 +75,20 @@ export default function LogViewer({
 
 	useEffect(() => {
 		window.addEventListener('resize', handleResize);
-		viewerRef.current.addEventListener('scroll', handleScroll);
+		viewerRef.current?.addEventListener('scroll', handleScroll);
 
 		return () => {
 			window.removeEventListener('resize', handleResize);
-			viewerRef.current.removeEventListener('scroll', handleScroll);
+			viewerRef.current?.removeEventListener('scroll', handleScroll);
 		}
 	}, [headerHeight]);
 
 	useEffect(() => {
 		if (!isUserScrolling.current) {
-			viewerRef.current.scrollTo(0, viewerRef.current.scrollHeight);
+			viewerRef.current?.scrollTo(0, viewerRef.current.scrollHeight);
 		}
+
+		viewerRef.current?.focus();
 	}, [logs]);
 
 	useEffect(() => {
@@ -91,7 +97,7 @@ export default function LogViewer({
 
 	useEffect(() => {
 		isUserScrolling.current = false;
-		viewerRef.current.scrollTo(0, viewerRef.current.scrollHeight);
+		viewerRef.current?.scrollTo(0, viewerRef.current.scrollHeight);
 	}, [searchQuery])
 
 	return (
@@ -100,6 +106,10 @@ export default function LogViewer({
 				{
 					logs.filter(filter)
 						.map(e => <LogLine key={e.id} text={e.text} />)
+				}
+				{
+					logs.length === 0 && loading &&
+					<Skeleton count={10} baseColor="#444" highlightColor="#666" />
 				}
 			</div>
 		</>
