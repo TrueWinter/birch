@@ -264,6 +264,26 @@ func (a *App) unzip(f string) (string, error) {
 	return tempFile.Name(), nil
 }
 
+func (a *App) OpenLogFileWithName(file string) {
+	runtime.EventsEmit(a.ctx, "setLoadStatus", true)
+	runtime.EventsEmit(a.ctx, "logFileSelected")
+
+	if (strings.HasSuffix(file, ".log.gz")) {
+		log.Println(".log.gz", file)
+		log, err := a.unzip(file)
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "error", "Failed to load log: " + err.Error(), true)
+			return
+		}
+		a.loadLogFile(log, filepath.Base(file), true)
+	} else if (strings.HasSuffix(file, ".log")) {
+		log.Println(".log", file)
+		a.loadLogFile(file, filepath.Base(file), false)
+	} else {
+		runtime.EventsEmit(a.ctx, "error", "Failed to get selected file: file type not supported", true)
+	}
+}
+
 func (a *App) OpenLogFile() {
 	dialogOptions := runtime.OpenDialogOptions{
 		DefaultDirectory: config.MinecraftDirectory + sep() + "logs",
@@ -285,21 +305,37 @@ func (a *App) OpenLogFile() {
 		return
 	}
 
-	runtime.EventsEmit(a.ctx, "setLoadStatus", true)
-	runtime.EventsEmit(a.ctx, "logFileSelected")
+	a.OpenLogFileWithName(file)
+}
 
-	if (strings.HasSuffix(file, ".log.gz")) {
-		log.Println(".log.gz", file)
-		log, err := a.unzip(file)
-		if err != nil {
-			runtime.EventsEmit(a.ctx, "error", "Failed to load log: " + err.Error(), true)
-			return
-		}
-		a.loadLogFile(log, filepath.Base(file), true)
-	} else if (strings.HasSuffix(file, ".log")) {
-		log.Println(".log", file)
-		a.loadLogFile(file, filepath.Base(file), false)
-	} else {
-		runtime.EventsEmit(a.ctx, "error", "Failed to get selected file: file type not supported", true)
+type LogFiles struct {
+	Name string `json:"Name"`
+	Path string `json:"Path"`
+}
+
+func (a *App) GetFilesInLogDirectory() ([]LogFiles, error) {
+	logDir := config.MinecraftDirectory + sep() + "logs"
+
+	files, err := os.ReadDir(logDir)
+	if err != nil {
+		return nil, err
 	}
+
+	logFiles := []LogFiles{}
+
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+
+		if strings.HasSuffix(file.Name(), ".log") || strings.HasSuffix(file.Name(), ".log.gz") {
+			logFiles = append(logFiles, LogFiles{
+				Name: file.Name(),
+				Path: logDir + sep() + file.Name(),
+			})
+		}
+	}
+
+	log.Printf("Found %d log files", len(logFiles))
+	return logFiles, nil
 }

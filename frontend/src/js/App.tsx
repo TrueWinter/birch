@@ -95,7 +95,7 @@ export default function App() {
 	}
 
 	function handleLogChange() {
-		app.LoadLog();
+		app.LoadLog(false);
 	}
 
 	function handleSettingsChanged() {
@@ -137,7 +137,7 @@ export default function App() {
 		runtime.EventsOn('nonLatestFileLoaded', handleNonLatestFileLoaded);
 		runtime.EventsOn('logFileSelected', handleLogFileSelected);
 
-		app.LoadLog();
+		app.LoadLog(false);
 		getSettings();
 
 		return () => {

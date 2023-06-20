@@ -7,7 +7,7 @@
 	padding: 25px;
 	border-radius: 10px;
 	transform: translate(-50%, -50%);
-	max-height: 50%;
+	max-height: 60%;
 	overflow-y: auto;
 }
 
@@ -16,7 +16,42 @@
 	margin-bottom: 4px;
 }
 
+.headingWithButton {
+	display: flex;
+	justify-content: space-between;
+}
+
 .button {
 	padding: 4px;
 	cursor: pointer;
+	border: 0;
+	border-radius: 4px;
+}
+
+.files {
+	max-height: 116px;
+	overflow-y: auto;
+	border: 1px solid grey;
+	border-radius: 4px;
+	padding: 4px;
+}
+
+.file {
+	min-height: 20px;
+	margin-bottom: 4px;
+	font-size: large;
+	padding: 0px 8px;
+	cursor: pointer;
+}
+
+.file:hover {
+	background-color: #333;
+}
+
+.search {
+	margin: 8px 0px;
+}
+
+.searchDiv {
+	display: grid;
 }
