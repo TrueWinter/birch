@@ -7,4 +7,4 @@ pkgbuild --install-location /Applications --component Birch.app Birch.pkg
 # We don't talk about the amount of time I wasted trying to troubleshoot failed installations.
 rm -r Birch.app
 # Only interested in the installer
-rm -r Birch.exe
+rm -r Birch-amd64.exe
