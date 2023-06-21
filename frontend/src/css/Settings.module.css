@@ -8,3 +8,10 @@
 	border-radius: 10px;
 	transform: translate(-50%, -50%);
 }
+
+.licenseText {
+	margin-top: 4px;
+	text-align: center;
+	display: block;
+	width: 100%;
+}

@@ -1,6 +1,9 @@
 import CloseButton from './CloseButton'
 import css from '../css/Settings.module.css'
-import { ChangeEventHandler } from 'react'
+import { ChangeEventHandler, useState } from 'react'
+import Overlay from './Overlay'
+import Licenses from './Licenses'
+import { BrowserOpenURL } from '../../wailsjs/runtime/runtime'
 
 interface SettingsProps {
  	minecraftLocation: string
@@ -16,9 +19,13 @@ export default function Settings({
 	skipUpdateCheck, version,
 	hideSettings, handleChange
 }: SettingsProps) {
+	const [licensesShown, setLicensesShown] = useState(false);
+
 	return (
 		<div className={css.settings}>
 			<CloseButton onClick={hideSettings} />
+			<Overlay id="settings" shown={licensesShown} />
+			{licensesShown && <Licenses setLicensesShown={setLicensesShown} />}
 			<h1>Settings</h1>
 			<p>You will need to restart Birch for changes to apply</p>
 			<div>
@@ -48,8 +55,15 @@ export default function Settings({
 			<div style={{
 				display: 'inline',
 				float: 'left'
-			}}><span style={{color: 'bisque'}}>Birch</span>, developed by TrueWinter</div>
+			}}><a href="#" style={{
+				color: 'bisque',
+				cursor: 'pointer'
+			}} onClick={() => BrowserOpenURL('https://github.com/TrueWinter/birch')}>Birch</a>, developed by TrueWinter</div>
 			<div id="settings-version" style={{display: 'inline', float: 'right'}}>v{version}</div>
+			<br />
+			<div className={css.licenseText}>
+				<a href="#" onClick={() => setLicensesShown(true)}>View open-source licenses</a>
+			</div>
 		</div>
 	)
 }

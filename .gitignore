@@ -7,3 +7,5 @@ frontend/wailsjs
 build/windows/installer/wails_tools.nsh
 *.syso
 notes.txt
+licenses.json
+package.json.md5
