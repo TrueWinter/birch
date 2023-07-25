@@ -3,7 +3,7 @@
 Birch is a Minecraft log viewer that allows you to easily search chat logs. It is currently in beta, and runs on Windows and Mac.
 
 | ![Main window](.github/images/main.png) |
-|---|
+|:---:|
 | The main Birch window |
 
 ## Usage
@@ -17,7 +17,7 @@ There may be times when it would be useful to search for multiple things. The ad
 - `any`: a message can contain any of the searched words
 
 | ![Search](.github/images/search.png) |
-|---|
+|:---:|
 | Birch allows you to do complex searches through the Advanced Search popup |
 
 To return to simple search mode, press the search button at the top of the page.
@@ -27,5 +27,5 @@ To return to simple search mode, press the search button at the top of the page.
 You can load old log files from your Minecraft folder, or from anywhere on your computer.
 
 | ![Old log files](.github/images/load-log.png) |
-|---|
+|:---:|
 | Birch allows you to open old log files |
