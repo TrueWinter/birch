@@ -1,9 +1,13 @@
-import CloseButton from './CloseButton'
-import css from '../css/Settings.module.css'
 import { ChangeEventHandler, useState } from 'react'
+
+import CloseButton from './CloseButton'
 import Overlay from './Overlay'
 import Licenses from './Licenses'
+
 import { BrowserOpenURL } from '../../wailsjs/runtime/runtime'
+
+import css from '../css/Settings.module.css'
+import commonCss from '../css/_common.module.css'
 
 interface SettingsProps {
  	minecraftLocation: string
@@ -23,10 +27,11 @@ export default function Settings({
 
 	return (
 		<div className={css.settings}>
-			<CloseButton onClick={hideSettings} />
 			<Overlay id="settings" shown={licensesShown} />
 			{licensesShown && <Licenses setLicensesShown={setLicensesShown} />}
-			<h1>Settings</h1>
+			<h1 className={commonCss.headingWithButton}>Settings
+				<CloseButton onClick={hideSettings} />
+			</h1>
 			<p>You will need to restart Birch for changes to apply</p>
 			<div>
 				<div className="setting-container">

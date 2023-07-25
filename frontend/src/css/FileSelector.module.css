@@ -1,24 +1,12 @@
 .popup {
-	position: fixed;
-	z-index: 1050;
-	top: 50%;
-	left: 50%;
-	background-color: #222222;
-	padding: 25px;
-	border-radius: 10px;
-	transform: translate(-50%, -50%);
-	max-height: 60%;
-	overflow-y: auto;
+	composes: popup from './_common.module.css';
+	z-index: 1050 !important;
+	max-height: 60% !important;
 }
 
 .heading {
 	margin-top: 4px;
 	margin-bottom: 4px;
-}
-
-.headingWithButton {
-	display: flex;
-	justify-content: space-between;
 }
 
 .button {
@@ -53,5 +41,9 @@
 }
 
 .searchDiv {
+	/*
+		Allows the search input to take up 100% of the space.
+		Width 100% overflowed, so not using that method here.
+	*/
 	display: grid;
 }

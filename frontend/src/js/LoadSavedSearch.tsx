@@ -4,8 +4,9 @@ import Skeleton from './Skeleton'
 
 import { GetSettings } from '../../wailsjs/go/main/App'
 
-import css from '../css/SaveSearch.module.css'
 import 'react-loading-skeleton/dist/skeleton.css'
+import css from '../css/SaveSearch.module.css'
+import commonCss from '../css/_common.module.css'
 
 interface LoadSavedSearchProps {
 	setLoadSavedSearchShown: Function
@@ -44,8 +45,9 @@ export default function LoadSavedSearch({
 
 	return (
 		<div className={css.popup} data-r={loadSavedSearchRenderCount}>
-			<CloseButton onClick={() => setLoadSavedSearchShown(false)}/>
-			<h1 className={css.heading}>Load&nbsp;Saved&nbsp;Search&nbsp;Query</h1>
+			<h1 className={commonCss.headingWithButton}>Load Saved Search Query
+				<CloseButton onClick={() => setLoadSavedSearchShown(false)}/>
+			</h1>
 			<hr/>
 
 			<div>

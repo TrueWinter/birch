@@ -1,94 +1,105 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { v4 as uuid } from 'uuid'
 import Overlay from './Overlay'
 import CloseButton from './CloseButton'
 import LoadSavedSearch from './LoadSavedSearch'
 import SaveSearch from './SaveSearch'
+import SearchGroup from './AdvancedSearch/SearchGroup'
+import { SavedSearch } from './SavedSearch'
 
 import { ChangeSetting } from '../../wailsjs/go/main/App'
 
 import css from '../css/AdvancedSearch.module.css'
+import commonCss from '../css/_common.module.css'
+
+export type InputValue = string | ISearchGroup
+
+export interface Input {
+	key: string
+	value: InputValue
+}
+
+const SearchModeValues = ['all', 'any'] as const
+export type SearchMode = typeof SearchModeValues[number]
+
+export interface ISearchGroup {
+	mode: SearchMode
+	terms: Input[]
+}
 
 interface AdvancedSearchProps {
 	setAdvancedSearchShown: Function
-	setSearchQuery: Function
-	searchQuery: string | SearchQuery
+	setSearchQuery: React.Dispatch<React.SetStateAction<InputValue>>
+	searchQuery: InputValue
 }
-
-interface Input {
-	key: string
-	value: string
-}
-
-export interface BaseSearchQuery {
-	mode: string
-}
-
-export interface SearchQueryWithInputs extends BaseSearchQuery {
-	inputs: string[]
-}
-
-export interface SearchQueryWithTerms extends BaseSearchQuery {
-	terms: string[]
-}
-
-export type SearchQuery = SearchQueryWithInputs | SearchQueryWithTerms;
 
 export default function AdvancedSearch({
 	setAdvancedSearchShown,
 	setSearchQuery,
 	searchQuery
 }: AdvancedSearchProps) {
-	const [inputs, setInputs] = useState([] as Input[]);
-	const [searchMode, setSearchMode] = useState('and');
+	const [searchData, setSearchData] = useState({
+		mode: 'all',
+		terms: []
+	} as ISearchGroup);
 	const [loadSavedSearchShown, setLoadSavedSearchShown] = useState(false);
 	const [loadSavedSearchRenderCount, setLoadSavedSearchRenderCount] = useState(0);
 	const [saveSearchShown, setSaveSearchShown] = useState(false);
-
-	function addInput(value = '') {
-		setInputs(i => ([ ...i, {
-			key: uuid(),
-			value
-		}]))
-	}
+	const thisRef = useRef(null);
 
 	function search() {
-		setSearchQuery({
-			mode: searchMode,
-			terms: inputs.map(e => e.value)
-		});
-
-		setAdvancedSearchShown(false);
+		setSearchQuery(searchData)
+		setAdvancedSearchShown(false)
 	}
 
-	function clearInputs() {
-		setInputs([]);
-		addInput();
+	function clearInputs(add: boolean = false) {
+		setSearchData({
+			mode: 'all',
+			terms: add ? [{
+				key: uuid(),
+				value: ''
+			}] : []
+		})
 	}
 
-	function setInputValue(key: string, value: string) {
-		let input = inputs.find(e => e.key === key);
-		if (!input) return;
-		input.value = value;
-		setInputs(inputs);
+	function searchGroupFromSavedSearch(search: SavedSearch): ISearchGroup {
+		let searchGroup: ISearchGroup = {
+			// If the user has an invalid search mode, don't search using that.
+			// Instead, use the default search mode.
+			mode: SearchModeValues.includes(search.mode) ? search.mode : 'all',
+			terms: []
+		};
+
+		for (let term of search.terms) {
+			searchGroup.terms.push({
+				key: uuid(),
+				value: typeof term === 'string' ? term : searchGroupFromSavedSearch(term)
+			})
+		}
+
+		return searchGroup;
+	}
+
+	function savedSearchFromSearchGroup(search: ISearchGroup): SavedSearch {
+		let savedSearch: SavedSearch = {
+			mode: search.mode,
+			terms: []
+		}
+
+		for (let term of search.terms) {
+			if (typeof term.value === 'string') {
+				savedSearch.terms.push(term.value)
+			} else {
+				savedSearch.terms.push(savedSearchFromSearchGroup(term.value))
+			}
+		}
+
+		return savedSearch;
 	}
 
 	function loadSavedSearch(data: string) {
-		let query = JSON.parse(atob(data));
-		// Backwards compatability
-		if (query.inputs) {
-			query.terms = query.inputs;
-			delete query.inputs;
-		}
-
-		setInputs([])
-		for (let term of query.terms) {
-			addInput(term);
-		}
-
-		console.log(query);
-
-		setSearchMode(query.mode);
+		let query: SavedSearch = JSON.parse(atob(data));
+		setSearchData(searchGroupFromSavedSearch(query));
 		setLoadSavedSearchShown(false);
 	}
 
@@ -104,10 +115,7 @@ export default function AdvancedSearch({
 	}
 
 	function saveSearch(name: string) {
-		const toSave = {
-			mode: searchMode,
-			terms: inputs.map(e => e.value)
-		};
+		const toSave: SavedSearch = savedSearchFromSearchGroup(searchData);
 
 		if (!name || !name.trim()) {
 			return alert('Cannot save search query with blank name');
@@ -126,46 +134,28 @@ export default function AdvancedSearch({
 	}
 
 	useEffect(() => {
-		if (typeof searchQuery === 'string') {
-			addInput();
-		} else if (typeof searchQuery === 'object') {
-			setSearchMode(searchQuery.mode);
-			for (let term of (searchQuery as SearchQueryWithTerms).terms) {
-				addInput(term);
-			}
+		if (typeof searchQuery === 'object') {
+			setSearchData(searchQuery);
 		}
 
-		return () => setInputs([]);
+		return () => clearInputs(true);
 	}, []);
 
 	return (
 		<>
-			<div className={css.advancedSearch}>
-				<Overlay id="search" shown={loadSavedSearchShown || saveSearchShown} />
-				<CloseButton onClick={() => setAdvancedSearchShown(false)} />
-				<h1 className={css.heading}>Advanced Search</h1>
+			<div className={commonCss.popup} ref={thisRef}>
+				<Overlay id="search" shown={loadSavedSearchShown || saveSearchShown} parentRef={thisRef} />
+				<h1 className={commonCss.headingWithButton}>Advanced Search
+					<CloseButton onClick={() => setAdvancedSearchShown(false)} />
+				</h1>
 				<div className={css.instruction}>Press the search button in the header to return to simple search mode</div>
 				<hr/>
 
-				<div>
-					{inputs.map(e => 
-						<div key={e.key} className={['input-box', css.mb8].join(' ')}>
-							<input className="input" type="text" defaultValue={e.value} onChange={(i) => setInputValue(e.key, i.target.value)} />
-						</div>
-					)}
-				</div>
-
-				<div className={['input-box', css.mb8].join(' ')}>
-					Search mode: <select className="input" autoComplete="off" value={searchMode} onChange={(e) => setSearchMode(e.target.value)}>
-						<option value="and">and</option>
-						<option value="or">or</option>
-					</select>
-				</div>
+				<SearchGroup id={undefined /* root doesn't need key */} searchData={searchData} setSearchData={setSearchData} />
 
 				<div className="input-box">
-					<button className={['input', css.actionButton].join(' ')} onClick={() => addInput()}>+</button>
 					<button className={['input', css.actionButton].join(' ')} onClick={search}>Search</button>
-					<button className={['input', css.reset, css.actionButton].join(' ')} onClick={clearInputs}>Reset</button>
+					<button className={['input', css.reset, css.actionButton].join(' ')} onClick={() => clearInputs()}>Reset</button>
 					<button className={['input', css.actionButton].join(' ')} onClick={() => setSaveSearchShown(true)}>Save</button>
 					<button className={['input', css.actionButton].join(' ')} onClick={() => setLoadSavedSearchShown(true)}>Load</button>
 				</div>

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import Skeleton from 'react-loading-skeleton'
 import LogLine from './LogLine'
-import { SearchQueryWithTerms } from './AdvancedSearch'
+import { ISearchGroup } from './AdvancedSearch'
 import { Log } from './App'
 
 import 'react-loading-skeleton/dist/skeleton.css'
@@ -10,7 +10,7 @@ import css from '../css/LogViewer.module.css'
 interface LogViewerProps {
 	logs: Log[]
 	headerHeight: number
-	searchQuery: SearchQueryWithTerms | string
+	searchQuery: ISearchGroup | string
 	skipFilter: boolean,
 	loading: boolean
 }
@@ -26,36 +26,53 @@ export default function LogViewer({
 		viewerRef.current.scrollTo(0, viewerRef.current.scrollHeight);
 	}
 
-	function filter(e: Log) {
+	function doesMatch(e: Log, query: ISearchGroup): boolean {
+		if (query.terms.length === 0) return true;
+
+		switch (query.mode) {
+			case 'all':
+				let matches = 0;
+				let total = query.terms.length;
+
+				for (let term of query.terms) {
+					if (typeof term.value === 'string') {
+						if (e.text.toLowerCase().includes(term.value.toLowerCase())) {
+							matches++;
+						}
+					} else {
+						if (doesMatch(e, term.value)) {
+							matches++;
+						}
+					}
+				}
+
+				return matches === total;
+			case 'any':
+				for (let term of query.terms) {
+					if (typeof term.value === 'string') {
+						if (e.text.toLowerCase().includes(term.value.toLowerCase())) {
+							return true;
+						}
+					} else {
+						if (doesMatch(e, term.value)) {
+							return true;
+						}
+					}
+				}
+
+				return false;
+			default:
+				return false;
+		}
+	}
+
+	function filter(e: Log): boolean {
 		if (skipFilter) return true;
 
 		if (typeof searchQuery === 'string') {
 			return e.text.toLowerCase().includes((searchQuery as string).toLowerCase());
-		} else if (typeof searchQuery === 'object') {
-			switch (searchQuery.mode) {
-				case 'and':
-					let matchesForAndSearch = 0;
-					for (let j = 0; j < searchQuery.terms.length; j++) {
-						if (e.text.toLowerCase().includes(searchQuery.terms[j].toLowerCase())) {
-							matchesForAndSearch++;
-						}
-					}
-	
-					// If this log line matches all searched terms, show it
-					return matchesForAndSearch === searchQuery.terms.length;
-				case 'or':
-					let matchesForOrSearch = 0;
-					for (let j = 0; j < searchQuery.terms.length; j++) {
-						if (e.text.toLowerCase().includes(searchQuery.terms[j].toLowerCase())) {
-							matchesForOrSearch++;
-						}
-					}
-	
-					// If this log line matches any searched terms, show it
-					return matchesForOrSearch > 0;
-				default:
-					return;
-			}
+		} else {
+			return doesMatch(e, searchQuery);
 		}
 	}
 

@@ -5,11 +5,10 @@ import Header from './Header'
 import LogViewer from './LogViewer'
 import Overlay from './Overlay'
 import Settings from './Settings'
-import AdvancedSearch, { SearchQuery, SearchQueryWithTerms } from './AdvancedSearch'
+import AdvancedSearch, { ISearchGroup, InputValue } from './AdvancedSearch'
 import UpdateNotification from './UpdateNotification'
 import FileSelector from './FileSelector'
 
-import '../style.css'
 import '../app.css'
 
 import * as app from '../../wailsjs/go/main/App'
@@ -41,7 +40,7 @@ export default function App() {
 	const [nonLatestFileLoaded, setNonLatestFileLoaded] = useState(false);
 	const [headerHeight, setHeaderHeight] = useState(0);
 	const [advancedSearchShown, setAdvancedSearchShown] = useState(false);
-	const [searchQuery, setSearchQuery] = useState('' as string | SearchQueryWithTerms);
+	const [searchQuery, setSearchQuery] = useState('' as InputValue);
 
 	window.logs = logs;
 

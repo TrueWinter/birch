@@ -1,15 +1,7 @@
 .popup {
-	position: fixed;
-	z-index: 1050;
-	top: 50%;
-	left: 50%;
-	background-color: #222222;
-	padding: 25px;
-	border-radius: 10px;
-	transform: translate(-50%, -50%);
-	max-height: 60vh;
-	overflow-y: auto;
-	border: 1px solid #333;
+	composes: popup from './_common.module.css';
+	z-index: 1050 !important;
+	max-height: 60vh !important;
 }
 
 .licenses {
@@ -21,14 +13,4 @@
 
 .licenses h2 {
 	margin: 0;
-}
-
-.heading {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-}
-
-.closeButton {
-	font-size: medium;
 }

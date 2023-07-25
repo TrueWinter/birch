@@ -4,6 +4,7 @@ import licenses from '../../../licenses.json'
 import CloseButton from './CloseButton'
 
 import css from '../css/Licenses.module.css'
+import commonCss from '../css/_common.module.css'
 
 interface RenderHTMLSafelyProps {
 	string: string
@@ -28,10 +29,8 @@ export default function Licenses({
 }: LicensesProps) {
 	return (
 		<div className={css.popup}>
-			<h1 className={css.heading}>Open Source Licenses
-				<CloseButton onClick={() => setLicensesShown(false)} props={{
-					className: css.closeButton
-				}} />
+			<h1 className={commonCss.headingWithButton}>Open Source Licenses
+				<CloseButton onClick={() => setLicensesShown(false)} />
 			</h1>
 			<p>Birch is <a href="#" onClick={() => BrowserOpenURL('https://github.com/TrueWinter/birch')}>open-source software</a>, and as with most software, it would not be possible without the work of open-source software developers.</p>
 			<div className={css.licenses}>

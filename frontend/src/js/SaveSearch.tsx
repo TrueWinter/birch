@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import CloseButton from './CloseButton'
 
 import css from '../css/SaveSearch.module.css'
+import commonCss from '../css/_common.module.css'
 
 interface LoadSavedSearchProps {
 	setSaveSearchShown: Function
@@ -20,8 +21,9 @@ export default function SaveSearch({
 
 	return (
 		<div className={css.popup}>
-			<CloseButton onClick={() => setSaveSearchShown(false)} />
-			<h1 className={css.heading}>Save&nbsp;Search&nbsp;Query</h1>
+			<h1 className={commonCss.headingWithButton}>Save Search Query
+				<CloseButton onClick={() => setSaveSearchShown(false)} />
+			</h1>
 			<hr/>
 
 			<div className="input-box">

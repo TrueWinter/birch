@@ -1,0 +1,16 @@
+.group {
+	border: 1px solid grey;
+	padding: 8px;
+	border-radius: 8px;
+	margin-bottom: 8px;
+}
+
+.input {
+	display: inline-block;
+	margin-right: 8px;
+}
+
+.remove-group {
+	display: block;
+    margin-left: auto;
+}

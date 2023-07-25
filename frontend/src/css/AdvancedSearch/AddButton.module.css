@@ -1,0 +1,30 @@
+.tooltip {
+	display: none;
+}
+
+.tooltip[data-show="true"] {
+	display: block;
+	padding: 8px;
+	background-color: #444;
+	border-radius: 8px;
+}
+
+.tooltip > div {
+	cursor: pointer;
+}
+
+.tooltip > div:not(:last-child) {
+	margin-bottom: 4px;
+	padding-bottom: 4px;
+	border-bottom: 1px solid grey;
+}
+
+.button {
+	border: none;
+    border-radius: 3px;
+    outline: none;
+    height: 30px;
+    line-height: 30px;
+    padding: 0 10px;
+    background-color: rgba(240, 240, 240, 1);
+}

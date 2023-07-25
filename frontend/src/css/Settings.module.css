@@ -1,12 +1,7 @@
 .settings {
-	position: fixed;
-	z-index: 1000;
-	top: 50%;
-	left: 50%;
-	background-color: #222222;
-	padding: 25px;
-	border-radius: 10px;
-	transform: translate(-50%, -50%);
+	composes: popup from './_common.module.css';
+	max-height: unset !important;
+	overflow: unset !important;
 }
 
 .licenseText {
@@ -14,4 +9,8 @@
 	text-align: center;
 	display: block;
 	width: 100%;
+}
+
+:global(.setting-container) {
+	margin-bottom: 4px;
 }
