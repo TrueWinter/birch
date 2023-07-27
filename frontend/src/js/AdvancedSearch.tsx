@@ -110,9 +110,13 @@ export default function AdvancedSearch({
 	}
 
 	function loadSavedSearch(data: string) {
-		let query: SavedSearch = JSON.parse(atob(data));
-		setSearchData(searchGroupFromSavedSearch(query));
-		setLoadSavedSearchShown(false);
+		try {
+			let query: SavedSearch = JSON.parse(atob(data));
+			setSearchData(searchGroupFromSavedSearch(query));
+			setLoadSavedSearchShown(false);
+		} catch(e) {
+			alert(`An error occurred: ${e}`);
+		}
 	}
 
 	function deleteSavedSearch(name: string) {
@@ -146,7 +150,7 @@ export default function AdvancedSearch({
 
 		ChangeSetting('SavedSearchQueries', {
 			key: name,
-			value: data ? data : btoa(JSON.stringify(toSave))
+			value: toSave
 		});
 
 		setSaveSearchShown(false);
