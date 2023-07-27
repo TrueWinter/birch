@@ -6,10 +6,11 @@ import buttonCss from '../../css/AdvancedSearch/AddButton.module.css'
 interface AddButtonProps {
 	addInput: Function
 	addGroup: Function
+	className?: string
 }
 
 export default function AddButton({
-	addInput, addGroup
+	addInput, addGroup, className = ''
 }: AddButtonProps) {
 	const buttonRef = useRef(null as unknown as HTMLButtonElement);
 	const menuRef = useRef(null as unknown as HTMLDivElement);
@@ -47,7 +48,7 @@ export default function AddButton({
 				<div onClick={() => handleMenuClick('input')}>Add input</div>
 				<div onClick={() => handleMenuClick('group')}>Add group</div>
 			</div>
-			<button ref={buttonRef} className={buttonCss.button} onClick={() => setMenuShown(s => !s)}>+</button>
+			<button ref={buttonRef} className={[buttonCss.button, className].filter(e=>e).join(' ')} onClick={() => setMenuShown(s => !s)}>+</button>
 		</>
 	)
 }

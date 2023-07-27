@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"compress/gzip"
 	"context"
+	"errors"
 	"io"
 	"log"
 	"os"
@@ -338,4 +339,69 @@ func (a *App) GetFilesInLogDirectory() ([]LogFiles, error) {
 
 	log.Printf("Found %d log files", len(logFiles))
 	return logFiles, nil
+}
+
+func (a *App) ExportSearch(name string, data string) error {
+	dialogOptions := runtime.SaveDialogOptions{
+		DefaultFilename: name + ".bss",
+	}
+
+	file, err := runtime.SaveFileDialog(a.ctx, dialogOptions)
+	if err != nil || file == "" {
+		if err != nil {
+			return err
+		}
+	}
+
+	saveFile, saveErr := os.Create(file)
+	if saveErr != nil {
+		return saveErr
+	}
+	defer saveFile.Close()
+
+	saveFile.WriteString(data)
+	return nil
+}
+
+type ImportedSearch struct {
+	Name string `json:"name"`
+	Data string `json:"data"`
+}
+
+func (a *App) ImportSearch() (ImportedSearch, error) {
+	dialogOptions := runtime.OpenDialogOptions{
+		Title: "Open saved search",
+		Filters: []runtime.FileFilter{
+			{
+				DisplayName: "Saved searches",
+				Pattern: "*.bss",
+			},
+		},
+	}
+
+	file, err := runtime.OpenFileDialog(a.ctx, dialogOptions)
+	if err != nil || file == "" {
+		if err != nil {
+			return ImportedSearch{}, err
+		}
+
+		return ImportedSearch{}, errors.New("no file selected")
+	}
+
+	openFile, openErr := os.Open(file)
+	if openErr != nil {
+		return ImportedSearch{}, openErr
+	}
+	defer openFile.Close()
+
+	fileData, readErr := io.ReadAll(openFile)
+	if readErr != nil {
+		return ImportedSearch{}, readErr
+	}
+
+	filename := filepath.Base(file)
+	return ImportedSearch{
+		Name: strings.Replace(filename, filepath.Ext(filename), "", 1),
+		Data: string(fileData),
+	}, nil
 }

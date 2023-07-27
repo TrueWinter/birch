@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/radovskyb/watcher v1.0.7
-	github.com/wailsapp/wails/v2 v2.4.1
+	github.com/wailsapp/wails/v2 v2.5.1
 	golang.org/x/text v0.7.0
 )
 

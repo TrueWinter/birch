@@ -14,3 +14,7 @@
 	display: block;
     margin-left: auto;
 }
+
+.float-left {
+	float: left;
+}

@@ -6,11 +6,13 @@ import LoadSavedSearch from './LoadSavedSearch'
 import SaveSearch from './SaveSearch'
 import SearchGroup from './AdvancedSearch/SearchGroup'
 import { SavedSearch } from './SavedSearch'
+import SearchModeHelpTooltip from './AdvancedSearch/SearchModeHelpTooltip'
 
-import { ChangeSetting } from '../../wailsjs/go/main/App'
+import { ChangeSetting, ExportSearch } from '../../wailsjs/go/main/App'
 
 import css from '../css/AdvancedSearch.module.css'
 import commonCss from '../css/_common.module.css'
+import SearchTypeHelpTooltip from './AdvancedSearch/SearchTypeHelpTooltip'
 
 export type InputValue = string | ISearchGroup
 
@@ -22,8 +24,12 @@ export interface Input {
 const SearchModeValues = ['all', 'any'] as const
 export type SearchMode = typeof SearchModeValues[number]
 
+const SearchTypeValues = ['include', 'exclude'] as const
+export type SearchType = typeof SearchTypeValues[number]
+
 export interface ISearchGroup {
 	mode: SearchMode
+	type: SearchType
 	terms: Input[]
 }
 
@@ -40,11 +46,14 @@ export default function AdvancedSearch({
 }: AdvancedSearchProps) {
 	const [searchData, setSearchData] = useState({
 		mode: 'all',
+		type: 'include',
 		terms: []
 	} as ISearchGroup);
 	const [loadSavedSearchShown, setLoadSavedSearchShown] = useState(false);
 	const [loadSavedSearchRenderCount, setLoadSavedSearchRenderCount] = useState(0);
 	const [saveSearchShown, setSaveSearchShown] = useState(false);
+	const [searchModeHelpButtonRef, setSearchModeHelpButtonRef] = useState(undefined as (React.MutableRefObject<HTMLButtonElement> | undefined))
+	const [searchTypeHelpButtonRef, setSearchTypeHelpButtonRef] = useState(undefined as (React.MutableRefObject<HTMLButtonElement> | undefined))
 	const thisRef = useRef(null);
 
 	function search() {
@@ -55,6 +64,7 @@ export default function AdvancedSearch({
 	function clearInputs(add: boolean = false) {
 		setSearchData({
 			mode: 'all',
+			type: 'include',
 			terms: add ? [{
 				key: uuid(),
 				value: ''
@@ -67,6 +77,7 @@ export default function AdvancedSearch({
 			// If the user has an invalid search mode, don't search using that.
 			// Instead, use the default search mode.
 			mode: SearchModeValues.includes(search.mode) ? search.mode : 'all',
+			type: SearchTypeValues.includes(search.type) ? search.type : 'include',
 			terms: []
 		};
 
@@ -83,6 +94,7 @@ export default function AdvancedSearch({
 	function savedSearchFromSearchGroup(search: ISearchGroup): SavedSearch {
 		let savedSearch: SavedSearch = {
 			mode: search.mode,
+			type: search.type,
 			terms: []
 		}
 
@@ -114,7 +126,7 @@ export default function AdvancedSearch({
 		});
 	}
 
-	function saveSearch(name: string) {
+	function serializeSearch(name: string): string | void {
 		const toSave: SavedSearch = savedSearchFromSearchGroup(searchData);
 
 		if (!name || !name.trim()) {
@@ -125,11 +137,30 @@ export default function AdvancedSearch({
 			return alert('Cannot save blank search query');
 		}
 
+		return btoa(JSON.stringify(toSave))
+	}
+
+	function saveSearch(name: string, data?: string) {
+		const toSave = data ? data : serializeSearch(name);
+		if (!toSave) return;
+
 		ChangeSetting('SavedSearchQueries', {
 			key: name,
-			value: btoa(JSON.stringify(toSave))
+			value: data ? data : btoa(JSON.stringify(toSave))
 		});
 
+		setSaveSearchShown(false);
+	}
+
+	function exportSearch(name: string) {
+		const toSave = serializeSearch(name);
+		if (!toSave) return;
+
+		console.log(toSave);
+
+		ExportSearch(name, toSave).catch(err => {
+			alert(`An error occurred: ${err}`)
+		})
 		setSaveSearchShown(false);
 	}
 
@@ -143,6 +174,8 @@ export default function AdvancedSearch({
 
 	return (
 		<>
+			<SearchModeHelpTooltip buttonRef={searchModeHelpButtonRef} />
+			<SearchTypeHelpTooltip buttonRef={searchTypeHelpButtonRef} />
 			<div className={commonCss.popup} ref={thisRef}>
 				<Overlay id="search" shown={loadSavedSearchShown || saveSearchShown} parentRef={thisRef} />
 				<h1 className={commonCss.headingWithButton}>Advanced Search
@@ -151,7 +184,8 @@ export default function AdvancedSearch({
 				<div className={css.instruction}>Press the search button in the header to return to simple search mode</div>
 				<hr/>
 
-				<SearchGroup id={undefined /* root doesn't need key */} searchData={searchData} setSearchData={setSearchData} />
+				<SearchGroup id={undefined /* root doesn't need key */} searchData={searchData} setSearchData={setSearchData}
+					setSearchModeHelpButtonRef={setSearchModeHelpButtonRef} setSearchTypeHelpButtonRef={setSearchTypeHelpButtonRef} />
 
 				<div className="input-box">
 					<button className={['input', css.actionButton].join(' ')} onClick={search}>Search</button>
@@ -162,10 +196,13 @@ export default function AdvancedSearch({
 			</div>
 
 			{loadSavedSearchShown && <LoadSavedSearch setLoadSavedSearchShown={setLoadSavedSearchShown}
-				loadSavedSearch={loadSavedSearch} deleteSavedSearch={deleteSavedSearch} loadSavedSearchRenderCount={loadSavedSearchRenderCount}
+				loadSavedSearch={loadSavedSearch} deleteSavedSearch={deleteSavedSearch}
+				loadSavedSearchRenderCount={loadSavedSearchRenderCount}
+				setLoadSavedSearchRenderCount={setLoadSavedSearchRenderCount}
+				saveSearch={saveSearch}
 			/>}
 
-			{saveSearchShown && <SaveSearch setSaveSearchShown={setSaveSearchShown} saveSearch={saveSearch} />}
+			{saveSearchShown && <SaveSearch setSaveSearchShown={setSaveSearchShown} saveSearch={saveSearch} exportSearch={exportSearch} />}
 		</>
 	)
 }

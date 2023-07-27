@@ -1,0 +1,22 @@
+.heading {
+	margin-top: 4px;
+	margin-bottom: 4px;
+}
+
+.popup {
+	composes: popup from './_common.module.css';
+	z-index: 1100 !important;
+}
+
+.mb8 {
+	margin-bottom: 8px;
+}
+
+.delete {
+	background-color: coral !important;
+}
+
+.button {
+	margin-left: 8px;
+	cursor: pointer;
+}

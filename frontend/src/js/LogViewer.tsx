@@ -46,12 +46,12 @@ export default function LogViewer({
 					}
 				}
 
-				return matches === total;
+				return query.type === 'include' ? matches === total : matches !== total;
 			case 'any':
 				for (let term of query.terms) {
 					if (typeof term.value === 'string') {
 						if (e.text.toLowerCase().includes(term.value.toLowerCase())) {
-							return true;
+							return query.type === 'include';
 						}
 					} else {
 						if (doesMatch(e, term.value)) {
@@ -60,7 +60,7 @@ export default function LogViewer({
 					}
 				}
 
-				return false;
+				return query.type !== 'include';
 			default:
 				return false;
 		}
