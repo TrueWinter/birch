@@ -23,7 +23,9 @@ type BirchConfig struct {
 	MinecraftDirectory string `json:"MinecraftDirectory"`
 	IgnoreOldLogs      bool `json:"IgnoreOldLogs"`
 	SkipUpdateCheck    bool `json:"SkipUpdateCheck"`
-	SavedSearchQueries map[string]string `json:"SavedSearchQueries"`
+	// Deprecated: This was replaced with BSS files stored in
+	// $birchConfigDir/searches/
+	SavedSearchQueries map[string]string `json:"SavedSearchQueries,omitempty"`
 }
 
 var config BirchConfig
@@ -105,7 +107,6 @@ func main() {
 
 		if (config.SavedSearchQueries == nil) {
 			config.SavedSearchQueries = make(map[string]string)
-			SaveConfig()
 		}
 	}
 

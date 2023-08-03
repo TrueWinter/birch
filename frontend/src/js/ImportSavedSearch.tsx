@@ -11,7 +11,7 @@ interface ImportSavedSearchProps {
 	setImportSavedSearchPopupShown: Function
 	setLoadSavedSearchRenderCount: Function
 	saveSearch: Function
-	search: main.ImportedSearch
+	search: main.NamedSearch
 }
 
 export default function ImportSavedSearch({
@@ -24,7 +24,6 @@ export default function ImportSavedSearch({
 
 	function importSearch() {
 		saveSearch(nameRef.current?.value, search.data);
-		setLoadSavedSearchRenderCount((s: number) => s + 1);
 		setImportSavedSearchPopupShown(false);
 	}
 

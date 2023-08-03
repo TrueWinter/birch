@@ -8,11 +8,12 @@ import SearchGroup from './AdvancedSearch/SearchGroup'
 import { SavedSearch } from './SavedSearch'
 import SearchModeHelpTooltip from './AdvancedSearch/SearchModeHelpTooltip'
 
-import { ChangeSetting, ExportSearch } from '../../wailsjs/go/main/App'
+import { DeleteSavedSearch, ExportSearchWithDialog, SaveSearchToBirchDirectory } from '../../wailsjs/go/main/App'
 
 import css from '../css/AdvancedSearch.module.css'
 import commonCss from '../css/_common.module.css'
 import SearchTypeHelpTooltip from './AdvancedSearch/SearchTypeHelpTooltip'
+import { serialization } from '../../wailsjs/go/models'
 
 export type InputValue = string | ISearchGroup
 
@@ -109,10 +110,9 @@ export default function AdvancedSearch({
 		return savedSearch;
 	}
 
-	function loadSavedSearch(data: string) {
+	function loadSavedSearch(data: serialization.DSearchGroup) {
 		try {
-			let query: SavedSearch = JSON.parse(atob(data));
-			setSearchData(searchGroupFromSavedSearch(query));
+			setSearchData(searchGroupFromSavedSearch(data as SavedSearch));
 			setLoadSavedSearchShown(false);
 		} catch(e) {
 			alert(`An error occurred: ${e}`);
@@ -120,13 +120,12 @@ export default function AdvancedSearch({
 	}
 
 	function deleteSavedSearch(name: string) {
-		ChangeSetting('SavedSearchQueries', {
-			key: name,
-			value: null as any
-		}).then(() => {
+		DeleteSavedSearch(name).then(() => {
 			// Hacky way of forcing LoadSavedSearch to re-render
 			// without moving its state into the parent component
 			setLoadSavedSearchRenderCount(s => s + 1);
+		}).catch(err => {
+			alert(`An error occurred: ${err}`);
 		});
 	}
 
@@ -141,30 +140,28 @@ export default function AdvancedSearch({
 			return alert('Cannot save blank search query');
 		}
 
-		return btoa(JSON.stringify(toSave))
+		return JSON.stringify(toSave)
 	}
 
 	function saveSearch(name: string, data?: string) {
-		const toSave = data ? data : serializeSearch(name);
+		const toSave = data ? JSON.stringify(data) : serializeSearch(name);
 		if (!toSave) return;
-
-		ChangeSetting('SavedSearchQueries', {
-			key: name,
-			value: toSave
+		
+		SaveSearchToBirchDirectory(name, toSave).then(() => {
+			setSaveSearchShown(false);
+			setLoadSavedSearchRenderCount((s: number) => s + 1);
+		}).catch(err => {
+			alert(`An error occurred: ${err}`);
 		});
-
-		setSaveSearchShown(false);
 	}
 
 	function exportSearch(name: string) {
 		const toSave = serializeSearch(name);
 		if (!toSave) return;
 
-		console.log(toSave);
-
-		ExportSearch(name, toSave).catch(err => {
+		ExportSearchWithDialog(name, toSave).catch(err => {
 			alert(`An error occurred: ${err}`)
-		})
+		});
 		setSaveSearchShown(false);
 	}
 

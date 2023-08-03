@@ -1,9 +1,11 @@
 package main
 
 import (
+	"birch/serialization"
 	"bufio"
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"log"
@@ -86,8 +88,30 @@ func (a *App) ready(ctx context.Context) {
 		}
 	}()
 
-	if (!config.SkipUpdateCheck) {
+	if !config.SkipUpdateCheck {
 		runtime.EventsEmit(ctx, "updateCheck")
+	}
+
+	if len(config.SavedSearchQueries) != 0 {
+		log.Println("Found legacy SavedSearchQueries. Converting to BSS files")
+
+		for name, data := range config.SavedSearchQueries {
+			log.Println(name, data)
+			ds, dsErr := serialization.Deserialize([]byte(data))
+			if dsErr != nil {
+				log.Println("Failed to migrate saved search " + name, dsErr)
+				continue
+			}
+
+			err := a.SaveDeserializedSearchToBirchDirectory(name, ds)
+			if err != nil {
+				log.Println("Failed to migrate saved search " + name, err)
+			} else {
+				delete(config.SavedSearchQueries, name)
+			}
+		}
+
+		SaveConfig()
 	}
 }
 
@@ -207,16 +231,6 @@ func (a *App) ChangeSetting(setting string, data SettingData) {
 
 			config.MinecraftDirectory = dir
 			SaveConfig()
-		case "SavedSearchQueries":
-			println("search", data.Key, data.Value)
-			if data.Value == "" {
-				delete(config.SavedSearchQueries, data.Key)
-			} else {
-				config.SavedSearchQueries[data.Key] = data.Value
-			}
-			SaveConfig()
-			skipReload = true
-			runtime.EventsEmit(a.ctx, "savedSearchQueries")
 	}
 
 	if !skipReload {
@@ -341,7 +355,68 @@ func (a *App) GetFilesInLogDirectory() ([]LogFiles, error) {
 	return logFiles, nil
 }
 
-func (a *App) ExportSearch(name string, data string) error {
+func (a *App) GetSavedSearches() ([]NamedSearch, error) {
+	searchDir := birchConfigDir + sep() + "searches"
+
+	files, err := os.ReadDir(searchDir)
+	if err != nil {
+		return nil, err
+	}
+
+	searches := []NamedSearch{}
+
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+
+		searchFile, searchFileErr := os.ReadFile(searchDir + sep() + file.Name())
+		if searchFileErr != nil {
+			return []NamedSearch{}, searchFileErr
+		}
+
+		ds, dsErr := serialization.Deserialize(searchFile)
+		if dsErr != nil {
+			return []NamedSearch{}, dsErr
+		}
+
+		searches = append(searches, NamedSearch{
+			Name: strings.Replace(file.Name(), filepath.Ext(file.Name()), "", 1),
+			Data: ds,
+		})
+	}
+
+	log.Printf("Found %d searches", len(searches))
+	return searches, nil
+}
+
+func (a *App) saveSerializedSearch(file string, data []byte) error {
+	saveFile, saveErr := os.Create(file)
+	if saveErr != nil {
+		return saveErr
+	}
+	defer saveFile.Close()
+
+	saveFile.Write(data)
+	return nil
+}
+
+func (a *App) ExportSearch(file string, name string, data string) error {
+	savedSearch := serialization.DSearchGroup{}
+	marshalErr := json.Unmarshal([]byte(data), &savedSearch)
+	if marshalErr != nil {
+		return marshalErr
+	}
+
+	serialized, serializeErr := serialization.Serialize(savedSearch)
+	if serializeErr != nil {
+		return serializeErr
+	}
+
+	return a.saveSerializedSearch(file, serialized)
+}
+
+func (a *App) ExportSearchWithDialog(name string, data string) error {
 	dialogOptions := runtime.SaveDialogOptions{
 		DefaultFilename: name + ".bss",
 	}
@@ -351,24 +426,52 @@ func (a *App) ExportSearch(name string, data string) error {
 		if err != nil {
 			return err
 		}
+
+		return nil
 	}
 
-	saveFile, saveErr := os.Create(file)
-	if saveErr != nil {
-		return saveErr
-	}
-	defer saveFile.Close()
-
-	saveFile.WriteString(data)
-	return nil
+	return a.ExportSearch(file, name, data)
 }
 
-type ImportedSearch struct {
+func (a *App) SaveDeserializedSearchToBirchDirectory(name string, data serialization.DSearchGroup) error {
+	saveDir := birchConfigDir + sep() + "searches"
+	if !exists(saveDir) {
+		os.Mkdir(saveDir, os.ModePerm)
+	}
+
+	serialized, serializeErr := serialization.Serialize(data)
+	if serializeErr != nil {
+		return serializeErr
+	}
+
+	file := saveDir + sep() + name + ".bss"
+	return a.saveSerializedSearch(file, serialized)
+}
+
+func (a *App) SaveSearchToBirchDirectory(name string, data string) error {
+	saveDir := birchConfigDir + sep() + "searches"
+	if !exists(saveDir) {
+		os.Mkdir(saveDir, os.ModePerm)
+	}
+	file := saveDir + sep() + name + ".bss"
+	return a.ExportSearch(file, name, data)
+}
+
+func (a *App) DeleteSavedSearch(name string) error {
+	save := birchConfigDir + sep() + "searches" + sep() + name + ".bss"
+	if !exists(save) {
+		return nil
+	}
+
+	return os.Remove(save)
+}
+
+type NamedSearch struct {
 	Name string `json:"name"`
-	Data string `json:"data"`
+	Data serialization.DSearchGroup `json:"data"`
 }
 
-func (a *App) ImportSearch() (ImportedSearch, error) {
+func (a *App) ImportSearch() (NamedSearch, error) {
 	dialogOptions := runtime.OpenDialogOptions{
 		Title: "Open saved search",
 		Filters: []runtime.FileFilter{
@@ -382,26 +485,30 @@ func (a *App) ImportSearch() (ImportedSearch, error) {
 	file, err := runtime.OpenFileDialog(a.ctx, dialogOptions)
 	if err != nil || file == "" {
 		if err != nil {
-			return ImportedSearch{}, err
+			return NamedSearch{}, err
 		}
 
-		return ImportedSearch{}, errors.New("no file selected")
+		return NamedSearch{}, errors.New("no file selected")
 	}
 
 	openFile, openErr := os.Open(file)
 	if openErr != nil {
-		return ImportedSearch{}, openErr
+		return NamedSearch{}, openErr
 	}
 	defer openFile.Close()
 
 	fileData, readErr := io.ReadAll(openFile)
 	if readErr != nil {
-		return ImportedSearch{}, readErr
+		return NamedSearch{}, readErr
 	}
 
+	ds, dsErr := serialization.Deserialize(fileData)
+	if dsErr != nil {
+		return NamedSearch{}, dsErr
+	}
 	filename := filepath.Base(file)
-	return ImportedSearch{
+	return NamedSearch{
 		Name: strings.Replace(filename, filepath.Ext(filename), "", 1),
-		Data: string(fileData),
+		Data: ds,
 	}, nil
 }

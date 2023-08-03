@@ -1,15 +1,14 @@
 import { useEffect, useState, useRef } from 'react'
 import CloseButton from './CloseButton'
 import Skeleton from './Skeleton'
-
-import { GetSettings, ImportSearch } from '../../wailsjs/go/main/App'
+import ImportSavedSearch from './ImportSavedSearch'
+import Overlay from './Overlay'
+import { main } from '../../wailsjs/go/models'
+import { GetSavedSearches, ImportSearch } from '../../wailsjs/go/main/App'
 
 import 'react-loading-skeleton/dist/skeleton.css'
 import css from '../css/SaveSearch.module.css'
 import commonCss from '../css/_common.module.css'
-import ImportSavedSearch from './ImportSavedSearch'
-import { main } from '../../wailsjs/go/models'
-import Overlay from './Overlay'
 
 interface LoadSavedSearchProps {
 	setLoadSavedSearchShown: Function
@@ -20,11 +19,6 @@ interface LoadSavedSearchProps {
 	saveSearch: Function
 }
 
-interface SavedSearchQuery {
-	name: string
-	data: string
-}
-
 export default function LoadSavedSearch({
 	setLoadSavedSearchShown,
 	loadSavedSearch,
@@ -33,10 +27,10 @@ export default function LoadSavedSearch({
 	setLoadSavedSearchRenderCount,
 	saveSearch
 }: LoadSavedSearchProps) {
-	const [savedSearchQueries, setSavedSearchQueries] = useState([] as SavedSearchQuery[]);
+	const [savedSearchQueries, setSavedSearchQueries] = useState([] as main.NamedSearch[]);
 	const [loading, setLoading] = useState(true);
 	const [importSavedSearchPopupShown, setImportSavedSearchPopupShown] = useState(false);
-	const searchToImport = useRef({} as main.ImportedSearch)
+	const searchToImport = useRef({} as main.NamedSearch)
 
 	function importSearch() {
 		ImportSearch().then(search => {
@@ -48,16 +42,12 @@ export default function LoadSavedSearch({
 	}
 
 	useEffect(() => {
-		GetSettings().then(settings => {
-			const queries = settings.SavedSearchQueries || {};
-			
-			const toSave = Object.entries(queries).map(e => ({
-				name: e[0],
-				data: e[1] as string
-			}));
-
-			setSavedSearchQueries(toSave);
-			setLoading(false);		
+		GetSavedSearches().then(searches => {
+			const queries = searches || [];
+			setSavedSearchQueries(queries);
+			setLoading(false);
+		}).catch(err => {
+			alert(`An error occurred: ${err}`);
 		});
 	}, [loadSavedSearchRenderCount]);
 
