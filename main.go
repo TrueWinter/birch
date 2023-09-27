@@ -42,7 +42,8 @@ func ui(app *App) {
 		Windows: &windows.Options{
 			WebviewUserDataPath: birchConfigDir + "\\wv2",
 		},
-		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
+		EnableDefaultContextMenu: true,
+		BackgroundColour: &options.RGBA{R: 0x33, G: 0x33, B: 0x33, A: 1},
 		OnStartup:        app.startup,
 		OnDomReady:       app.ready,
 		Bind: []interface{}{

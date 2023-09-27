@@ -1,6 +1,6 @@
 import { KeyboardEvent, useEffect, useRef } from 'react'
 import { BsGear, BsFolder2Open } from 'react-icons/bs'
-import { SearchQueryWithTerms } from './AdvancedSearch'
+import { ISearchGroup } from './AdvancedSearch'
 
 import css from '../css/Header.module.css'
 
@@ -11,7 +11,7 @@ interface HeaderProps {
 	clearLogs: Function
 	setAdvancedSearchShown: Function
 	setSearchQuery: Function
-	searchQuery: string | SearchQueryWithTerms
+	searchQuery: string | ISearchGroup
 	nonLatestFileLoaded: boolean
 }
 
@@ -35,7 +35,7 @@ export default function Header({
 	}
 
 	function search() {
-		setSearchQuery(searchRef.current.value)
+		setSearchQuery(searchRef.current.value);
 	}
 
 	function handleResize() {

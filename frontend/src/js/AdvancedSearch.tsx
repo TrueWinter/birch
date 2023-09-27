@@ -55,7 +55,7 @@ export default function AdvancedSearch({
 	const [saveSearchShown, setSaveSearchShown] = useState(false);
 	const [searchModeHelpButtonRef, setSearchModeHelpButtonRef] = useState(undefined as (React.MutableRefObject<HTMLButtonElement> | undefined))
 	const [searchTypeHelpButtonRef, setSearchTypeHelpButtonRef] = useState(undefined as (React.MutableRefObject<HTMLButtonElement> | undefined))
-	const thisRef = useRef(null);
+	const thisRef = useRef(null as unknown as HTMLDivElement);
 
 	function search() {
 		setSearchQuery(searchData)
@@ -114,6 +114,12 @@ export default function AdvancedSearch({
 		try {
 			setSearchData(searchGroupFromSavedSearch(data as SavedSearch));
 			setLoadSavedSearchShown(false);
+			// https://stackoverflow.com/a/75403839
+			setTimeout(() => {
+				thisRef.current?.scrollTo({
+					top: thisRef.current?.scrollHeight
+				})
+			}, 0);
 		} catch(e) {
 			alert(`An error occurred: ${e}`);
 		}

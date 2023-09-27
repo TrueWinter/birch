@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState, KeyboardEvent, ChangeEvent } from 'react'
+import { Fragment, useEffect, KeyboardEvent, ChangeEvent } from 'react'
 import { v4 as uuid } from 'uuid'
 import { ISearchGroup, Input, InputValue, SearchMode, SearchType } from '../AdvancedSearch'
 import RemoveButton from './RemoveButton'
@@ -7,6 +7,7 @@ import TooltipHelpButton from './TooltipHelpButton'
 
 import css from '../../css/AdvancedSearch/SearchGroup.module.css'
 import asCss from '../../css/AdvancedSearch.module.css'
+import SearchInput from '../SearchInput'
 
 export interface SearchGroupProps {
 	id?: string
@@ -139,6 +140,22 @@ export default function SearchGroup({
 		})
 	}
 
+	function onClear(key: string) {
+		setSearchData(s => {
+			let tmpInputs = [...s.terms];
+
+			let nestedInput = findNestedInput(tmpInputs, key);
+			if (!nestedInput) return s;
+			nestedInput.value = '';
+
+			return {
+				mode: s.mode,
+				type: s.type,
+				terms: tmpInputs
+			};
+		})
+	}
+
 	function removeInput(key: string | undefined) {
 		if (!key) return;
 
@@ -202,7 +219,7 @@ export default function SearchGroup({
 						<div className={['input-box', asCss.mb8].join(' ')}>
 							{typeof e.value === 'string' ? 
 								<>
-									<input className={['input', css.input].join(' ')} type="text" defaultValue={e.value} onKeyUp={(ev) => onChange(e.key, ev)} />
+									<SearchInput data={e} onChange={onChange} onClear={onClear} />
 									<RemoveButton disable={a.length === 1} remove={() => removeInput(e.key)} />
 								</> :
 								<SearchGroup searchData={e.value} remove={() => removeGroup(e.key)} setSearchData={setSearchData} id={e.key}

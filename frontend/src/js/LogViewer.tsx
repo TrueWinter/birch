@@ -36,6 +36,7 @@ export default function LogViewer({
 
 				for (let term of query.terms) {
 					if (typeof term.value === 'string') {
+						if (term.value == '') continue;
 						if (e.text.toLowerCase().includes(term.value.toLowerCase())) {
 							matches++;
 						}
@@ -50,6 +51,7 @@ export default function LogViewer({
 			case 'any':
 				for (let term of query.terms) {
 					if (typeof term.value === 'string') {
+						if (term.value == '') continue;
 						if (e.text.toLowerCase().includes(term.value.toLowerCase())) {
 							return query.type === 'include';
 						}

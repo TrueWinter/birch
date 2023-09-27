@@ -1,0 +1,17 @@
+.inputBox {
+	display: inline-block;
+	margin-right: 8px;
+}
+
+.input {
+	padding-right: 16px !important;
+}
+
+.clear {
+	color: grey;
+	align-self: center;
+	cursor: pointer;
+	position: relative;
+	margin-left: -12px;
+	padding-right: 4px;
+}

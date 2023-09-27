@@ -41,7 +41,6 @@ export default function FileSelector({
 				</div>
 				<FileSelectorFiles files={logFiles} search={search} />
 			</div>
-			<hr />
 		</div>
 	)
 }
