@@ -203,12 +203,7 @@ func (a *App) BoolSettingChanged(setting string, value bool) {
 	shouldLoadLog = false
 }
 
-type SettingData struct {
-	Key string `json:"key"`
-	Value string `json:"value"`
-}
-
-func (a *App) ChangeSetting(setting string, data SettingData) {
+func (a *App) ChangeSetting(setting string, data interface{}) {
 	skipReload := false
 
 	switch setting {
@@ -231,6 +226,14 @@ func (a *App) ChangeSetting(setting string, data SettingData) {
 
 			config.MinecraftDirectory = dir
 			SaveConfig()
+		case "DefaultSearch":
+			skipReload = true		
+
+			t, ok := data.(string)
+			if ok {
+				config.DefaultSearch = t
+				SaveConfig()
+			}
 	}
 
 	if !skipReload {

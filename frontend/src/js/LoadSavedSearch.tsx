@@ -17,6 +17,8 @@ interface LoadSavedSearchProps {
 	loadSavedSearchRenderCount: number
 	setLoadSavedSearchRenderCount: Function
 	saveSearch: Function
+	defaultSearch: string
+	setDefaultSearch: Function
 }
 
 export default function LoadSavedSearch({
@@ -25,7 +27,9 @@ export default function LoadSavedSearch({
 	deleteSavedSearch,
 	loadSavedSearchRenderCount,
 	setLoadSavedSearchRenderCount,
-	saveSearch
+	saveSearch,
+	defaultSearch,
+	setDefaultSearch
 }: LoadSavedSearchProps) {
 	const [savedSearchQueries, setSavedSearchQueries] = useState([] as main.NamedSearch[]);
 	const [loading, setLoading] = useState(true);
@@ -49,7 +53,11 @@ export default function LoadSavedSearch({
 		}).catch(err => {
 			alert(`An error occurred: ${err}`);
 		});
-	}, [loadSavedSearchRenderCount]);
+
+
+	},
+	// See deleteSavedSearch() in AdvancedSearch.tsx
+	[loadSavedSearchRenderCount, defaultSearch]);
 
 	return (
 		<>
@@ -66,17 +74,31 @@ export default function LoadSavedSearch({
 				<a href="#" onClick={() => importSearch()}>Import from file</a>
 				<hr />
 
-				<div>
-					{savedSearchQueries.map(e =>
-						<div className={['input-box', css.mb8].join(' ')} key={e.name}>
-							<span>{e.name}</span>
-							<button className={['input', css.button].join(' ')} onClick={() => loadSavedSearch(e.data)}>Load</button>
-							<button className={['input', css.button, css.delete].join(' ')} onClick={() => deleteSavedSearch(e.name)}>Delete</button>
-						</div>
-					)}
+				<table className={[css.mb8, css['center-align']].join(' ')}>
+					<thead>
+						<tr>
+							<th>Default</th>
+							<th>Name</th>
+							<th>Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						{savedSearchQueries.map(e =>
+							<tr className="input-box" key={e.name}>
+								<td><input type="radio" name="default" checked={e.name === defaultSearch} onClick={() => setDefaultSearch(e.name)} onChange={() => {}}></input></td>
+								<td>{e.name}</td>
+								<td>
+									<button className={['input', css.button].join(' ')} onClick={() => loadSavedSearch(e.data)}>Load</button>
+									<button className={['input', css.button, css.delete].join(' ')} onClick={() => deleteSavedSearch(e.name)}>Delete</button>
+								</td>
+							</tr>
+						)}
 
-					{loading && <Skeleton height="34px" />}
-				</div>
+						{loading && <tr><td colSpan={3}><Skeleton height="34px" /></td></tr>}
+					</tbody>
+				</table>
+
+				<small className={[css['center-align'], css.block].join(' ')}>The default search will be applied every time Birch is opened.</small>
 			</div>
 		</>
 	)

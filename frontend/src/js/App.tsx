@@ -1,11 +1,11 @@
-import React, { ChangeEvent, useEffect, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react'
 import { v4 as uuid } from 'uuid'
 
 import Header from './Header'
 import LogViewer from './LogViewer'
 import Overlay from './Overlay'
 import Settings from './Settings'
-import AdvancedSearch, { ISearchGroup, InputValue } from './AdvancedSearch'
+import AdvancedSearch, { InputValue, searchGroupFromSavedSearch } from './AdvancedSearch'
 import UpdateNotification from './UpdateNotification'
 import FileSelector from './FileSelector'
 
@@ -13,7 +13,8 @@ import '../app.css'
 
 import * as app from '../../wailsjs/go/main/App'
 import * as runtime from '../../wailsjs/runtime/runtime.js'
-import { main } from '../../wailsjs/go/models';
+import { main } from '../../wailsjs/go/models'
+import { SavedSearch } from './SavedSearch'
 
 export interface Log {
 	id: string
@@ -44,18 +45,27 @@ export default function App() {
 
 	window.logs = logs;
 
-	function getSettings() {
+	function getSettings(loadDefaultSearch = false) {
 		app.GetSettings().then((s) => {
 			setSettings({
 				MinecraftDirectory: s.MinecraftDirectory,
 				IgnoreOldLogs: s.IgnoreOldLogs,
-				SkipUpdateCheck: s.SkipUpdateCheck
-			});
-		});
+				SkipUpdateCheck: s.SkipUpdateCheck,
+				DefaultSearch: s.DefaultSearch
+			})
+
+			if (loadDefaultSearch && s.DefaultSearch) {
+				app.GetSavedSearches().then(searches => {
+					let defaultSearch = searches.filter(e => e.name === s.DefaultSearch);
+					if (defaultSearch.length != 0) {
+						setSearchQuery(searchGroupFromSavedSearch(defaultSearch[0].data as SavedSearch))
+					}
+				})
+			}
+		})
 	}
 
 	function handleSettingChange(e: ChangeEvent<HTMLInputElement>) {
-		console.log(e, typeof e);
 		switch (typeof e) {
 			case 'object':
 				if (!(e.target.dataset.type && e.target.dataset.setting)) return;
@@ -126,6 +136,15 @@ export default function App() {
 		resetLogs(null);
 	}
 
+	function setDefaultSearch(name: string) {
+		setSettings(s => {
+			let settingsCopy = {...s};
+			settingsCopy.DefaultSearch = s.DefaultSearch === name ? '' : name;
+			app.ChangeSetting('DefaultSearch', settingsCopy.DefaultSearch)
+			return settingsCopy
+		})
+	}
+
 	useEffect(() => {
 		runtime.EventsOn('log', handleLog);
 		runtime.EventsOn('setLoadStatus', handleLoadStatus);
@@ -137,7 +156,7 @@ export default function App() {
 		runtime.EventsOn('logFileSelected', handleLogFileSelected);
 
 		app.LoadLog(false);
-		getSettings();
+		getSettings(true);
 
 		return () => {
 			runtime.EventsOff(
@@ -170,7 +189,8 @@ export default function App() {
 			/>}
 
 			{advancedSearchShown && <AdvancedSearch setAdvancedSearchShown={setAdvancedSearchShown}
-				setSearchQuery={setSearchQuery} searchQuery={searchQuery}
+				setSearchQuery={setSearchQuery} searchQuery={searchQuery} defaultSearch={settings.DefaultSearch}
+				setDefaultSearch={setDefaultSearch}
 			/>}
 
 			{fileSelectorShown && <FileSelector setFileSelectorShown={setFileSelectorShown} />}

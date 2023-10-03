@@ -26,6 +26,7 @@ type BirchConfig struct {
 	// Deprecated: This was replaced with BSS files stored in
 	// $birchConfigDir/searches/
 	SavedSearchQueries map[string]string `json:"SavedSearchQueries,omitempty"`
+	DefaultSearch string `json:"DefaultSearch"`
 }
 
 var config BirchConfig

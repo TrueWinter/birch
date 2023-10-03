@@ -38,12 +38,35 @@ interface AdvancedSearchProps {
 	setAdvancedSearchShown: Function
 	setSearchQuery: React.Dispatch<React.SetStateAction<InputValue>>
 	searchQuery: InputValue
+	defaultSearch: string,
+	setDefaultSearch: Function
+}
+
+export function searchGroupFromSavedSearch(search: SavedSearch): ISearchGroup {
+	let searchGroup: ISearchGroup = {
+		// If the user has an invalid search mode, don't search using that.
+		// Instead, use the default search mode.
+		mode: SearchModeValues.includes(search.mode) ? search.mode : 'all',
+		type: SearchTypeValues.includes(search.type) ? search.type : 'include',
+		terms: []
+	};
+
+	for (let term of search.terms) {
+		searchGroup.terms.push({
+			key: uuid(),
+			value: typeof term === 'string' ? term : searchGroupFromSavedSearch(term)
+		})
+	}
+
+	return searchGroup;
 }
 
 export default function AdvancedSearch({
 	setAdvancedSearchShown,
 	setSearchQuery,
-	searchQuery
+	searchQuery,
+	defaultSearch,
+	setDefaultSearch
 }: AdvancedSearchProps) {
 	const [searchData, setSearchData] = useState({
 		mode: 'all',
@@ -71,25 +94,6 @@ export default function AdvancedSearch({
 				value: ''
 			}] : []
 		})
-	}
-
-	function searchGroupFromSavedSearch(search: SavedSearch): ISearchGroup {
-		let searchGroup: ISearchGroup = {
-			// If the user has an invalid search mode, don't search using that.
-			// Instead, use the default search mode.
-			mode: SearchModeValues.includes(search.mode) ? search.mode : 'all',
-			type: SearchTypeValues.includes(search.type) ? search.type : 'include',
-			terms: []
-		};
-
-		for (let term of search.terms) {
-			searchGroup.terms.push({
-				key: uuid(),
-				value: typeof term === 'string' ? term : searchGroupFromSavedSearch(term)
-			})
-		}
-
-		return searchGroup;
 	}
 
 	function savedSearchFromSearchGroup(search: ISearchGroup): SavedSearch {
@@ -206,7 +210,7 @@ export default function AdvancedSearch({
 				loadSavedSearch={loadSavedSearch} deleteSavedSearch={deleteSavedSearch}
 				loadSavedSearchRenderCount={loadSavedSearchRenderCount}
 				setLoadSavedSearchRenderCount={setLoadSavedSearchRenderCount}
-				saveSearch={saveSearch}
+				saveSearch={saveSearch} defaultSearch={defaultSearch} setDefaultSearch={setDefaultSearch}
 			/>}
 
 			{saveSearchShown && <SaveSearch setSaveSearchShown={setSaveSearchShown} saveSearch={saveSearch} exportSearch={exportSearch} />}
