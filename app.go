@@ -9,7 +9,9 @@ import (
 	"errors"
 	"io"
 	"log"
+	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -512,4 +514,76 @@ func (a *App) ImportSearch() (NamedSearch, error) {
 		Name: strings.Replace(filename, filepath.Ext(filename), "", 1),
 		Data: ds,
 	}, nil
+}
+
+type GithubAsset struct {
+	Name string `json:"name"`
+	DownloadUrl string `json:"browser_download_url"`
+}
+
+func findAppropriateAsset(assets []GithubAsset) (GithubAsset, error) {
+	for _, asset := range assets {
+		if isWindows() && strings.HasSuffix(asset.Name, ".exe") {
+			return asset, nil
+		} else if isMac() && strings.HasSuffix(asset.Name, ".pkg") {
+			return asset, nil
+		}
+	}
+
+	return GithubAsset{}, errors.New("no suitable binary found")
+}
+
+func (a *App) DownloadUpdate(assets []GithubAsset) (string, error) {
+	asset, assetError := findAppropriateAsset(assets)
+	if assetError != nil {
+		return "", assetError
+	}
+
+	tempDir := os.TempDir()
+	tempFile, tempFileErr := os.Create(tempDir + sep() + asset.Name)
+	if tempFileErr != nil {
+		return "", tempFileErr
+	}
+	defer tempFile.Close()
+
+	resp, err := http.Get(asset.DownloadUrl)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	n, err := io.Copy(tempFile, resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	if n == 0 {
+		return "", errors.New("received blank file")
+	}
+
+	return tempFile.Name(), nil
+}
+
+func (a *App) InstallUpdate(file string) error {
+	log.Println("Installing", file, "as requested by user")
+
+	var cmd *exec.Cmd
+	if isWindows() {
+		// Running it with cmd allows the UAC popup to show
+		cmd = exec.Command("cmd", "/c", file)
+	} else {
+		cmd = exec.Command(file)
+	}
+	cmdErr := cmd.Start()
+	if cmdErr != nil {
+		return cmdErr
+	}
+
+	releaseErr := cmd.Process.Release()
+	if releaseErr != nil {
+		return releaseErr
+	}
+
+	runtime.Quit(a.ctx)
+	return nil
 }

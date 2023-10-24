@@ -6,15 +6,16 @@ import LogViewer from './LogViewer'
 import Overlay from './Overlay'
 import Settings from './Settings'
 import AdvancedSearch, { InputValue, searchGroupFromSavedSearch } from './AdvancedSearch'
-import UpdateNotification from './UpdateNotification'
+import UpdateNotification, { Release } from './UpdateNotification'
 import FileSelector from './FileSelector'
+import { SavedSearch } from './SavedSearch'
+import UpdatePopup from './UpdatePopup'
 
 import '../app.css'
 
 import * as app from '../../wailsjs/go/main/App'
 import * as runtime from '../../wailsjs/runtime/runtime.js'
 import { main } from '../../wailsjs/go/models'
-import { SavedSearch } from './SavedSearch'
 
 export interface Log {
 	id: string
@@ -42,6 +43,8 @@ export default function App() {
 	const [headerHeight, setHeaderHeight] = useState(0);
 	const [advancedSearchShown, setAdvancedSearchShown] = useState(false);
 	const [searchQuery, setSearchQuery] = useState('' as InputValue);
+	const [updatePopupShown, setUpdatePopupShown] = useState(false);
+	const [updateInfo, setUpdateInfo] = useState(null as any as Release);
 
 	window.logs = logs;
 
@@ -172,7 +175,7 @@ export default function App() {
 
 	return (
 		<>
-			<Overlay id="main" shown={settingsShown || advancedSearchShown || fileSelectorShown} />
+			<Overlay id="main" shown={settingsShown || advancedSearchShown || fileSelectorShown || updatePopupShown} />
 			<Header showSettings={() => setSettingsShown(true)}
 				showFileSelector={() => setFileSelectorShown(true)}
 				setHeaderHeight={setHeaderHeight} clearLogs={resetLogs}
@@ -195,7 +198,8 @@ export default function App() {
 
 			{fileSelectorShown && <FileSelector setFileSelectorShown={setFileSelectorShown} />}
 
-			<UpdateNotification />
+			<UpdateNotification setUpdatePopupShown={setUpdatePopupShown} setUpdateInfo={setUpdateInfo} />
+			{updatePopupShown && <UpdatePopup setUpdatePopupShown={setUpdatePopupShown} updateInfo={updateInfo} />}
 		</>
 	)
 }

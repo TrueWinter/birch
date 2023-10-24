@@ -1,0 +1,13 @@
+.buttonContainer {
+	text-align: center;
+}
+
+.buttonContainer button {
+	cursor: pointer;
+}
+
+.notice {
+	text-align: center;
+	display: block;
+	margin-top: 8px;
+}
