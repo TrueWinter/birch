@@ -33,12 +33,15 @@ export default function Licenses({
 				<CloseButton onClick={() => setLicensesShown(false)} />
 			</h1>
 			<p>Birch is <a href="#" onClick={() => BrowserOpenURL('https://github.com/TrueWinter/birch')}>open-source software</a>, and as with most software, it would not be possible without the work of open-source software developers.</p>
+			<hr />
 			<div className={css.licenses}>
 				{licenses.map(e => <div key={e.module}>
 					<h2>{e.module}</h2>
 					<RenderHTMLSafely string={e.license.replace(/\n/g, '<br />')}/>
 				</div>)}
 			</div>
+			<hr />
+			<p>Birch is not an official Minecraft product and is not approved by or associated with Mojang or Microsoft.</p>
 		</div>
 	)
 }
