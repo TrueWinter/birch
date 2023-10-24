@@ -561,6 +561,8 @@ func (a *App) DownloadUpdate(assets []GithubAsset) (string, error) {
 		return "", errors.New("received blank file")
 	}
 
+	tempFile.Chmod(0766)
+
 	return tempFile.Name(), nil
 }
 
@@ -572,7 +574,7 @@ func (a *App) InstallUpdate(file string) error {
 		// Running it with cmd allows the UAC popup to show
 		cmd = exec.Command("cmd", "/c", file)
 	} else {
-		cmd = exec.Command(file)
+		cmd = exec.Command("open", file)
 	}
 	cmdErr := cmd.Start()
 	if cmdErr != nil {
@@ -586,4 +588,12 @@ func (a *App) InstallUpdate(file string) error {
 
 	runtime.Quit(a.ctx)
 	return nil
+}
+
+func (a *App) AlertMessage(title string, str string) {
+	runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+		Type: runtime.InfoDialog,
+		Title: title,
+		Message: str,
+	})
 }
