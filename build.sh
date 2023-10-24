@@ -1,4 +1,6 @@
 # This build script must be run on a Mac
+set -e
+npm run test
 npm run generate-license-json
 wails build -platform darwin/amd64,windows/amd64 -nsis -clean
 cd ./build/bin

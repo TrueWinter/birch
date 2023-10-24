@@ -15,12 +15,6 @@ export default function UpdateNotification() {
 		oldVersion = oldVersion.replace(/^v/, '');
 
 		return semver.gt(newVersion, oldVersion);
-	
-		let newVersionSplit = newVersion.split('.').map(e => parseInt(e));
-		let oldVersionSplit = oldVersion.split('.').map(e => parseInt(e));
-	
-		if (newVersionSplit.length !== 3 || oldVersionSplit.length !== 3) return false;
-		return newVersionSplit.map((v, i) => oldVersionSplit[i] < v).includes(true);
 	}
 
 	async function updateCheck() {

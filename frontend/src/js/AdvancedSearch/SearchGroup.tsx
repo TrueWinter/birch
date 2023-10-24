@@ -1,13 +1,15 @@
 import { Fragment, useEffect, KeyboardEvent, ChangeEvent } from 'react'
 import { v4 as uuid } from 'uuid'
+
 import { ISearchGroup, Input, InputValue, SearchMode, SearchType } from '../AdvancedSearch'
 import RemoveButton from './RemoveButton'
 import AddButton from './AddButton'
 import TooltipHelpButton from './TooltipHelpButton'
+import { findNestedInput, findGroupParent } from '../utils/searchGroup'
+import SearchInput from '../SearchInput'
 
 import css from '../../css/AdvancedSearch/SearchGroup.module.css'
 import asCss from '../../css/AdvancedSearch.module.css'
-import SearchInput from '../SearchInput'
 
 export interface SearchGroupProps {
 	id?: string
@@ -26,30 +28,6 @@ export default function SearchGroup({
 	setSearchTypeHelpButtonRef,
 	remove
 }: SearchGroupProps) {
-	function findNestedInput(inputs: Input[], key: string): Input | undefined {
-		for (let input in inputs) {
-			if (inputs[input].key === key) {
-				return inputs[input];
-			} else {
-				if (typeof inputs[input] === 'string') continue;
-				let nestedInput = findNestedInput((inputs[input].value as ISearchGroup).terms, key)
-				if (nestedInput) return nestedInput;
-			}
-		}
-	}
-
-	function findGroupParent(groups: ISearchGroup, groupKey: string): ISearchGroup | undefined {
-		for (let group in groups.terms) {
-			if (groups.terms[group].key === groupKey) {
-				return groups;
-			} else {
-				if (typeof groups.terms[group].value === 'string') continue;
-				let groupParent = findGroupParent(groups.terms[group].value as ISearchGroup, groupKey);
-				if (groupParent) return groupParent;
-			}
-		}
-	}
-
 	function sortInputs(inputs: Input[]) {
 		// Groups should always be below inputs
 		inputs.sort((a, b) => {

@@ -189,20 +189,6 @@ func (a *App) GetSettings() BirchConfig {
 	return config
 }
 
-func (a *App) BoolSettingChanged(setting string, value bool) {
-	switch setting {
-		case "IgnoreOldLogs":
-			config.IgnoreOldLogs = value
-		case "SkipUpdateCheck":
-			config.SkipUpdateCheck = value;
-	}
-
-	SaveConfig()
-	runtime.EventsEmit(a.ctx, "settingsChanged")
-	runtime.EventsEmit(a.ctx, "message", "Settings changed, please restart Birch")
-	shouldLoadLog = false
-}
-
 func (a *App) ChangeSetting(setting string, data interface{}) {
 	skipReload := false
 
@@ -232,6 +218,18 @@ func (a *App) ChangeSetting(setting string, data interface{}) {
 			t, ok := data.(string)
 			if ok {
 				config.DefaultSearch = t
+				SaveConfig()
+			}
+		case "IgnoreOldLogs":
+			t, ok := data.(bool)
+			if ok {
+				config.IgnoreOldLogs = t
+				SaveConfig()
+			}
+		case "SkipUpdateCheck":
+			t, ok := data.(bool)
+			if ok {
+				config.SkipUpdateCheck = t
 				SaveConfig()
 			}
 	}

@@ -72,7 +72,7 @@ export default function App() {
 
 				switch (e.target.dataset.type) {
 					case 'bool':
-						app.BoolSettingChanged(e.target.dataset.setting, e.target.checked);
+						app.ChangeSetting(e.target.dataset.setting, e.target.checked);
 						break;
 				}
 				break;
