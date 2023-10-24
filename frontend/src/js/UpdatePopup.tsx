@@ -23,12 +23,15 @@ export default function UpdatePopup({
 	function update() {
 		setDownloading(true);
 		setStatus('Downloading...');
+
 		DownloadUpdate(updateInfo.assets).then(file => {
 			if (!file) return;
 			setStatus('Installing...');
+
 			InstallUpdate(file).catch(err => {
-				setStatus('');
 				alert(`An error occurred while installing: ${err}`);
+				setDownloading(false);
+				setStatus('');
 			});
 		}).catch(err => {
 			alert(`An error occurred while downloading: ${err}`);

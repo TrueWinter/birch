@@ -6,6 +6,10 @@
 	cursor: pointer;
 }
 
+.buttonContainer button:disabled {
+	cursor: not-allowed;
+}
+
 .notice {
 	text-align: center;
 	display: block;
