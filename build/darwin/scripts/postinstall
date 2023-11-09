@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+sudo -u "$USER" open -b "dev.truewinter.birch"
+
+exit 0
