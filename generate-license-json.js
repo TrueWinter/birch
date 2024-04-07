@@ -1,5 +1,5 @@
 const DIRS = ['.', 'frontend'];
-const LICENSE_FILES = ['LICENSE', 'LICENSE.md', 'LICENSE.txt'];
+const LICENSE_FILES = ['LICENSE', 'LICENSE.md', 'LICENSE.txt', 'license'];
 
 const { promises: fs } = require('fs');
 const path = require('path');
@@ -12,6 +12,11 @@ const goEnvs = JSON.parse(spawnSync('go env -json', {
 const GO_INSTALL_PATH = path.join(goEnvs.GOPATH, 'pkg', 'mod');
 
 const licenses = [];
+const externalLicenses = [{
+	prefix: '@mantine',
+	url: 'https://raw.githubusercontent.com/mantinedev/mantine/master/LICENSE'
+}];
+const externalLicensesCache = {};
 
 async function exists(p) {
 	try {
@@ -63,6 +68,26 @@ async function getDependencies(dir) {
 }
 
 /**
+ * @param {string} moduleName Module name
+ * @returns {string | null} External license
+ */
+function getExternalLicense(moduleName) {
+	for (const e of externalLicenses) {
+		if (moduleName.startsWith(e.prefix)) {
+			return e.url;
+		}
+	}
+
+	return null;
+}
+
+async function getExternalLicenseContent(url) {
+	let content = externalLicensesCache[url] || (await fetch(url)).text();
+	externalLicensesCache[url] = content;
+	return content;
+}
+
+/**
  * @param {string} dir Directory
  * @param {string} module Module
  * @param {string?} origModuleName Module name
@@ -79,11 +104,13 @@ async function getJsLicense(dir, module, origModuleName = module) {
 	const modulePath = path.join(dir, module);
 	const moduleFiles = await fs.readdir(modulePath);
 
-	let licenseFile = null;
-	for (const lf of LICENSE_FILES) {
-		if (moduleFiles.includes(lf)) {
-			licenseFile = lf;
-			break;
+	let licenseFile = getExternalLicense(origModuleName);
+	if (!licenseFile) {
+		for (const lf of LICENSE_FILES) {
+			if (moduleFiles.includes(lf)) {
+				licenseFile = lf;
+				break;
+			}
 		}
 	}
 
@@ -96,9 +123,10 @@ async function getJsLicense(dir, module, origModuleName = module) {
 
 	licenses.push({
 		module: `${origModuleName} v${version || '<unknown version>'}`,
-		license: await fs.readFile(path.join(modulePath, licenseFile), {
-			encoding: 'utf-8'
-		})
+		license: licenseFile.startsWith('https://') ? await getExternalLicenseContent(licenseFile) :
+			await fs.readFile(path.join(modulePath, licenseFile), {
+				encoding: 'utf-8'
+			})
 	});
 }
 
