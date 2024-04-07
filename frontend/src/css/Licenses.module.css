@@ -1,16 +1,8 @@
-.popup {
-	composes: popup from './_common.module.css';
-	z-index: 1050 !important;
-	max-height: 60vh !important;
-}
-
 .licenses {
-	height: 30vh;
-	overflow-y: auto;
-	overflow-x: hidden;
 	overflow-wrap: break-word;
 }
 
-.licenses h2 {
-	margin: 0;
+.licenses div {
+	/* Mantine sets a table display here, which causes overflowing */
+	display: inherit !important;
 }

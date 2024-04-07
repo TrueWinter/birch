@@ -1,19 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { v4 as uuid } from 'uuid'
-import Overlay from './Overlay'
-import CloseButton from './CloseButton'
 import LoadSavedSearch from './LoadSavedSearch'
 import SaveSearch from './SaveSearch'
 import SearchGroup from './AdvancedSearch/SearchGroup'
 import { SavedSearch } from './SavedSearch'
-import SearchModeHelpTooltip from './AdvancedSearch/SearchModeHelpTooltip'
+import { Modal, Text, Button, Group } from '@mantine/core'
+import { useDisclosure } from '@mantine/hooks'
 
 import { DeleteSavedSearch, ExportSearchWithDialog, SaveSearchToBirchDirectory } from '../../wailsjs/go/main/App'
-
-import css from '../css/AdvancedSearch.module.css'
-import commonCss from '../css/_common.module.css'
-import SearchTypeHelpTooltip from './AdvancedSearch/SearchTypeHelpTooltip'
 import { serialization } from '../../wailsjs/go/models'
+import EmptyInputAlert from './AdvancedSearch/EmptyInputAlert'
+import { ModalBaseProps } from './App'
 
 export type InputValue = string | ISearchGroup
 
@@ -34,8 +31,7 @@ export interface ISearchGroup {
 	terms: Input[]
 }
 
-interface AdvancedSearchProps {
-	setAdvancedSearchShown: Function
+interface AdvancedSearchProps extends ModalBaseProps {
 	setSearchQuery: React.Dispatch<React.SetStateAction<InputValue>>
 	searchQuery: InputValue
 	defaultSearch: string,
@@ -62,27 +58,32 @@ export function searchGroupFromSavedSearch(search: SavedSearch): ISearchGroup {
 }
 
 export default function AdvancedSearch({
-	setAdvancedSearchShown,
+	opened,
+	close,
 	setSearchQuery,
 	searchQuery,
 	defaultSearch,
 	setDefaultSearch
 }: AdvancedSearchProps) {
-	const [searchData, setSearchData] = useState({
+	const initialSearchData = Object.freeze({
 		mode: 'all',
 		type: 'include',
 		terms: []
-	} as ISearchGroup);
-	const [loadSavedSearchShown, setLoadSavedSearchShown] = useState(false);
+	});
+	const [searchData, setSearchData] = useState<ISearchGroup>(initialSearchData);
+	const [loadSavedSearchShown, { open: openLoadSavedSearch, close: closeLoadSavedSearch }] = useDisclosure(false);
 	const [loadSavedSearchRenderCount, setLoadSavedSearchRenderCount] = useState(0);
-	const [saveSearchShown, setSaveSearchShown] = useState(false);
-	const [searchModeHelpButtonRef, setSearchModeHelpButtonRef] = useState(undefined as (React.MutableRefObject<HTMLButtonElement> | undefined))
-	const [searchTypeHelpButtonRef, setSearchTypeHelpButtonRef] = useState(undefined as (React.MutableRefObject<HTMLButtonElement> | undefined))
+	const [saveSearchShown, { open: openSaveSearch, close: closeSaveSearch }] = useDisclosure(false);
+	const [emptyInputAlertShown, { open: openEmptyInputAlert, close: closeEmptyInputAlert }] = useDisclosure(false);
 	const thisRef = useRef(null as unknown as HTMLDivElement);
 
 	function search() {
-		setSearchQuery(searchData)
-		setAdvancedSearchShown(false)
+		if (hasBlankTerms(searchData)) {
+			openEmptyInputAlert()
+		} else {
+			setSearchQuery(searchData)
+			close()
+		}
 	}
 
 	function clearInputs(add: boolean = false) {
@@ -94,6 +95,19 @@ export default function AdvancedSearch({
 				value: ''
 			}] : []
 		})
+	}
+
+	function hasBlankTerms(search: ISearchGroup): boolean {
+		for (let term of search.terms) {
+			if (typeof term.value === 'string') {
+				console.log('t', term.value, !term.value)
+				return !term.value
+			} else {
+				return hasBlankTerms(term.value)
+			}
+		}
+
+		return false;
 	}
 
 	function savedSearchFromSearchGroup(search: ISearchGroup): SavedSearch {
@@ -117,7 +131,7 @@ export default function AdvancedSearch({
 	function loadSavedSearch(data: serialization.DSearchGroup) {
 		try {
 			setSearchData(searchGroupFromSavedSearch(data as SavedSearch));
-			setLoadSavedSearchShown(false);
+			closeLoadSavedSearch();
 			// https://stackoverflow.com/a/75403839
 			setTimeout(() => {
 				thisRef.current?.scrollTo({
@@ -131,8 +145,7 @@ export default function AdvancedSearch({
 
 	function deleteSavedSearch(name: string) {
 		DeleteSavedSearch(name).then(() => {
-			// Hacky way of forcing LoadSavedSearch to re-render
-			// without moving its state into the parent component
+			// Hacky way of forcing LoadSavedSearch to re-render without moving its state into the parent component
 			setLoadSavedSearchRenderCount(s => s + 1);
 		}).catch(err => {
 			alert(`An error occurred: ${err}`);
@@ -150,6 +163,10 @@ export default function AdvancedSearch({
 			return alert('Cannot save blank search query');
 		}
 
+		if (hasBlankTerms(searchData)) {
+			return alert('Cannot save search with empty input(s)');
+		}
+
 		return JSON.stringify(toSave)
 	}
 
@@ -158,7 +175,7 @@ export default function AdvancedSearch({
 		if (!toSave) return;
 		
 		SaveSearchToBirchDirectory(name, toSave).then(() => {
-			setSaveSearchShown(false);
+			closeSaveSearch();
 			setLoadSavedSearchRenderCount((s: number) => s + 1);
 		}).catch(err => {
 			alert(`An error occurred: ${err}`);
@@ -172,48 +189,57 @@ export default function AdvancedSearch({
 		ExportSearchWithDialog(name, toSave).catch(err => {
 			alert(`An error occurred: ${err}`)
 		});
-		setSaveSearchShown(false);
+		closeSaveSearch();
 	}
 
+	if (searchData.terms.length === 0) {
+		clearInputs(true);
+	}
+
+	// I know this isn't a good way to do this, but nothing else I tried worked.
 	useEffect(() => {
 		if (typeof searchQuery === 'object') {
 			setSearchData(searchQuery);
+		} else {
+			setSearchData(initialSearchData);
 		}
-
-		return () => clearInputs(true);
-	}, []);
+	}, [searchQuery]);
 
 	return (
 		<>
-			<SearchModeHelpTooltip buttonRef={searchModeHelpButtonRef} />
-			<SearchTypeHelpTooltip buttonRef={searchTypeHelpButtonRef} />
-			<div className={commonCss.popup} ref={thisRef}>
-				<Overlay id="search" shown={loadSavedSearchShown || saveSearchShown} parentRef={thisRef} />
-				<h1 className={commonCss.headingWithButton}>Advanced Search
-					<CloseButton onClick={() => setAdvancedSearchShown(false)} />
-				</h1>
-				<div className={css.instruction}>Press the search button in the header to return to simple search mode</div>
-				<hr/>
+			<Modal opened={opened} onClose={close} ref={thisRef} title="Advanced Search" centered>
+				<Text size="sm" style={{
+					borderBottom: '1px solid grey',
+					marginBottom: '12px'
+				}}>Press the search button in the header to return to simple search mode</Text>
 
-				<SearchGroup id={undefined /* root doesn't need key */} searchData={searchData} setSearchData={setSearchData}
-					setSearchModeHelpButtonRef={setSearchModeHelpButtonRef} setSearchTypeHelpButtonRef={setSearchTypeHelpButtonRef} />
-
-				<div className="input-box">
-					<button className={['input', css.actionButton].join(' ')} onClick={search}>Search</button>
-					<button className={['input', css.reset, css.actionButton].join(' ')} onClick={() => clearInputs()}>Reset</button>
-					<button className={['input', css.actionButton].join(' ')} onClick={() => setSaveSearchShown(true)}>Save</button>
-					<button className={['input', css.actionButton].join(' ')} onClick={() => setLoadSavedSearchShown(true)}>Load</button>
+				<div style={{
+					marginBottom: '8px'
+				}}>
+					<SearchGroup id={undefined /* root doesn't need key */} searchData={searchData} setSearchData={setSearchData} />
 				</div>
-			</div>
 
-			{loadSavedSearchShown && <LoadSavedSearch setLoadSavedSearchShown={setLoadSavedSearchShown}
+				<Group justify="space-between">
+					<Group gap="8px">
+						<Button size="compact-md" onClick={search}>Search</Button>
+						<Button size="compact-md" bg="red" onClick={() => clearInputs(true)}>Reset</Button>
+					</Group>
+					<Group gap="8px">
+						<Button size="compact-md" onClick={() => openSaveSearch()}>Save</Button>
+						<Button size="compact-md" onClick={() => openLoadSavedSearch()}>Load</Button>
+					</Group>
+				</Group>
+			</Modal>
+
+			<LoadSavedSearch opened={loadSavedSearchShown} close={closeLoadSavedSearch}
 				loadSavedSearch={loadSavedSearch} deleteSavedSearch={deleteSavedSearch}
 				loadSavedSearchRenderCount={loadSavedSearchRenderCount}
 				setLoadSavedSearchRenderCount={setLoadSavedSearchRenderCount}
 				saveSearch={saveSearch} defaultSearch={defaultSearch} setDefaultSearch={setDefaultSearch}
-			/>}
+			/>
 
-			{saveSearchShown && <SaveSearch setSaveSearchShown={setSaveSearchShown} saveSearch={saveSearch} exportSearch={exportSearch} />}
+			<SaveSearch opened={saveSearchShown} close={closeSaveSearch} saveSearch={saveSearch} exportSearch={exportSearch} />
+			<EmptyInputAlert opened={emptyInputAlertShown} close={closeEmptyInputAlert} />
 		</>
 	)
 }

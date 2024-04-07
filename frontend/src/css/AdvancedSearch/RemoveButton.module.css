@@ -1,7 +1,0 @@
-.button {
-	composes: button from './AddButton.module.css';
-}
-
-.mr8 {
-	margin-right: 8px;
-}

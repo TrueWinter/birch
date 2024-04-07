@@ -1,14 +1,13 @@
 import { useRef } from 'react'
 import { Input } from './AdvancedSearch'
-
-import css from '../css/SearchInput.module.css'
+import { TextInput } from '@mantine/core'
+import { IconX } from '@tabler/icons-react'
 
 interface SearchInput {
 	onChange: Function
 	onClear: Function
 	data: Input
 }
-
 export default function SearchInput({
 	onChange,
 	onClear,
@@ -22,9 +21,7 @@ export default function SearchInput({
 	}
 
 	return (
-		<span className={css.inputBox}>
-			<input ref={inputRef} className={['input', css.input].join(' ')} type="text" defaultValue={data.value as string} onKeyUp={(e) => onChange(data.key, e)} />
-			<span className={css.clear} onClick={(e) => clear(data.key)}>x</span>
-		</span>
+		<TextInput ref={inputRef} type="text" defaultValue={data.value as string} onKeyUp={(e) => onChange(data.key, e)}
+			rightSection={<IconX cursor="pointer" size="1em" onClick={(e) => clear(data.key)} />} rightSectionPointerEvents="all" />
 	)
 }

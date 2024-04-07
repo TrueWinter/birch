@@ -1,18 +1,15 @@
 import { useRef } from 'react'
-import CloseButton from './CloseButton'
+import { Modal, TextInput, Button, Stack, Group, HoverCard } from '@mantine/core'
+import { ModalBaseProps } from './App'
 
-import css from '../css/SaveSearch.module.css'
-import commonCss from '../css/_common.module.css'
-import asCss from '../css/AdvancedSearch.module.css'
-
-interface LoadSavedSearchProps {
-	setSaveSearchShown: Function
+interface LoadSavedSearchProps extends ModalBaseProps {
 	saveSearch: Function
 	exportSearch: Function
 }
 
 export default function SaveSearch({
-	setSaveSearchShown,
+	opened,
+	close,
 	saveSearch,
 	exportSearch
 }: LoadSavedSearchProps) {
@@ -27,20 +24,30 @@ export default function SaveSearch({
 	}
 
 	return (
-		<div className={css.popup}>
-			<h1 className={commonCss.headingWithButton}>Save Search Query
-				<CloseButton onClick={() => setSaveSearchShown(false)} />
-			</h1>
-			<hr/>
+		<Modal opened={opened} onClose={close} title="Save Search Query" centered>
+			<Stack>
+				<TextInput label="Name" ref={inputRef} />
 
-			<div className={['input-box', css.mb8].join(' ')}>
-				Name: <input className="input" type="text" ref={inputRef} />
-			</div>
+				<Group gap="xs">
+					<HoverCard width={300} withArrow arrowSize={12}>
+						<HoverCard.Target>
+							<Button onClick={save}>Save</Button>
+						</HoverCard.Target>
+						<HoverCard.Dropdown>
+							Save the search query so you can use it again later
+						</HoverCard.Dropdown>
+					</HoverCard>
 
-			<div className="input-box">
-				<button className={['input', asCss.actionButton].join(' ')} onClick={save}>Save</button>
-				<button className={['input', asCss.actionButton].join(' ')} onClick={exportToFile}>Export</button>
-			</div>
-		</div>
+					<HoverCard width={300} withArrow arrowSize={12}>
+						<HoverCard.Target>
+							<Button onClick={exportToFile}>Export</Button>
+						</HoverCard.Target>
+						<HoverCard.Dropdown>
+							Export the search query to a location of your choosing. This allows you to share a search query with someone else.
+						</HoverCard.Dropdown>
+					</HoverCard>
+				</Group>
+			</Stack>
+		</Modal>
 	)
 }

@@ -1,19 +1,16 @@
 import { useEffect, useState, useRef } from 'react'
-import CloseButton from './CloseButton'
+import { Modal, Button, Group, Text, Radio, Table, Anchor } from '@mantine/core'
 import Skeleton from './Skeleton'
 import ImportSavedSearch from './ImportSavedSearch'
-import Overlay from './Overlay'
+import { ModalBaseProps } from './App'
 import { main } from '../../wailsjs/go/models'
 import { GetSavedSearches, ImportSearch } from '../../wailsjs/go/main/App'
+import { useDisclosure } from '@mantine/hooks'
+import DeleteSavedSearchModal from './DeleteSavedSearchModal'
 
-import 'react-loading-skeleton/dist/skeleton.css'
-import css from '../css/SaveSearch.module.css'
-import commonCss from '../css/_common.module.css'
-
-interface LoadSavedSearchProps {
-	setLoadSavedSearchShown: Function
+interface LoadSavedSearchProps extends ModalBaseProps {
 	loadSavedSearch: Function
-	deleteSavedSearch: Function
+	deleteSavedSearch: (name: string) => void
 	loadSavedSearchRenderCount: number
 	setLoadSavedSearchRenderCount: Function
 	saveSearch: Function
@@ -22,7 +19,8 @@ interface LoadSavedSearchProps {
 }
 
 export default function LoadSavedSearch({
-	setLoadSavedSearchShown,
+	opened,
+	close,
 	loadSavedSearch,
 	deleteSavedSearch,
 	loadSavedSearchRenderCount,
@@ -33,16 +31,23 @@ export default function LoadSavedSearch({
 }: LoadSavedSearchProps) {
 	const [savedSearchQueries, setSavedSearchQueries] = useState([] as main.NamedSearch[]);
 	const [loading, setLoading] = useState(true);
-	const [importSavedSearchPopupShown, setImportSavedSearchPopupShown] = useState(false);
+	const [importSavedSearchModalShown, { open: openImportSavedSearchModal, close: closeImportSavedSearchModal }] = useDisclosure(false);
+	const [deleteSavedSearchModalShown, { open: openDeleteSavedSearchModal, close: closeDeleteSavedSearchModal }] = useDisclosure(false);
+	const [toDeleteName, setToDeleteName] = useState('');
 	const searchToImport = useRef({} as main.NamedSearch)
 
 	function importSearch() {
 		ImportSearch().then(search => {
 			searchToImport.current = search;
-			setImportSavedSearchPopupShown(true);
+			openImportSavedSearchModal();
 		}).catch(err => {
 			alert(`An error occurred: ${err}`);
 		})
+	}
+
+	function confirmDeleteSavedSearch(name: string) {
+		setToDeleteName(name);
+		openDeleteSavedSearchModal();
 	}
 
 	useEffect(() => {
@@ -53,53 +58,49 @@ export default function LoadSavedSearch({
 		}).catch(err => {
 			alert(`An error occurred: ${err}`);
 		});
-
-
 	},
 	// See deleteSavedSearch() in AdvancedSearch.tsx
 	[loadSavedSearchRenderCount, defaultSearch]);
 
 	return (
 		<>
-			{importSavedSearchPopupShown &&
-				<ImportSavedSearch setImportSavedSearchPopupShown={setImportSavedSearchPopupShown} saveSearch={saveSearch}
-				search={searchToImport.current} setLoadSavedSearchRenderCount={setLoadSavedSearchRenderCount} />
-			}
-			<div className={css.popup} data-r={loadSavedSearchRenderCount}>
-				<Overlay id="import-saved-search" shown={importSavedSearchPopupShown} />
-				<h1 className={commonCss.headingWithButton}>Load Saved Search Query
-					<CloseButton onClick={() => setLoadSavedSearchShown(false)} />
-				</h1>
-				<hr />
-				<a href="#" onClick={() => importSearch()}>Import from file</a>
-				<hr />
+			<Modal opened={opened} onClose={close} title="Load Saved Search Query" centered>
+				<ImportSavedSearch opened={importSavedSearchModalShown} close={closeImportSavedSearchModal} saveSearch={saveSearch}
+					search={searchToImport.current} setLoadSavedSearchRenderCount={setLoadSavedSearchRenderCount} />
+				<div data-r={loadSavedSearchRenderCount}>
+					<Anchor component="span" onClick={() => importSearch()}>Import from file</Anchor>
 
-				<table className={[css.mb8, css['center-align']].join(' ')}>
-					<thead>
-						<tr>
-							<th>Default</th>
-							<th>Name</th>
-							<th>Actions</th>
-						</tr>
-					</thead>
-					<tbody>
-						{savedSearchQueries.map(e =>
-							<tr className="input-box" key={e.name}>
-								<td><input type="radio" name="default" checked={e.name === defaultSearch} onClick={() => setDefaultSearch(e.name)} onChange={() => {}}></input></td>
-								<td>{e.name}</td>
-								<td>
-									<button className={['input', css.button].join(' ')} onClick={() => loadSavedSearch(e.data)}>Load</button>
-									<button className={['input', css.button, css.delete].join(' ')} onClick={() => deleteSavedSearch(e.name)}>Delete</button>
-								</td>
-							</tr>
-						)}
+					<Table>
+						<Table.Thead>
+							<Table.Tr>
+								<Table.Th>Default</Table.Th>
+								<Table.Th>Name</Table.Th>
+								<Table.Th>Actions</Table.Th>
+							</Table.Tr>
+						</Table.Thead>
+						<Table.Tbody>
+							{savedSearchQueries.map(e =>
+								<Table.Tr key={e.name}>
+									<Table.Td><Radio type="radio" name="default" checked={e.name === defaultSearch} onClick={() => setDefaultSearch(e.name)} onChange={() => {}}></Radio></Table.Td>
+									<Table.Td>{e.name}</Table.Td>
+									<Table.Td>
+										<Group gap="xs">
+											<Button size="compact-md" onClick={() => loadSavedSearch(e.data)}>Load</Button>
+											<Button size="compact-md" bg="red" onClick={() => confirmDeleteSavedSearch(e.name)}>Delete</Button>
+										</Group>
+									</Table.Td>
+								</Table.Tr>
+							)}
 
-						{loading && <tr><td colSpan={3}><Skeleton height="34px" /></td></tr>}
-					</tbody>
-				</table>
+							{loading && <tr><td colSpan={3}><Skeleton height="34px" /></td></tr>}
+						</Table.Tbody>
+					</Table>
 
-				<small className={[css['center-align'], css.block].join(' ')}>The default search will be applied every time Birch is opened.</small>
-			</div>
+					<Text size="sm">The default search will be applied every time Birch is opened.</Text>
+				</div>
+			</Modal>
+
+			<DeleteSavedSearchModal opened={deleteSavedSearchModalShown} close={closeDeleteSavedSearchModal} name={toDeleteName} deleteFn={deleteSavedSearch} />
 		</>
 	)
 }

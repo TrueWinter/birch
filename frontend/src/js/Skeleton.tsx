@@ -1,10 +1,14 @@
-import S from 'react-loading-skeleton'
-import type { SkeletonProps } from 'react-loading-skeleton/dist/Skeleton.d.ts'
+import { Skeleton as S, type SkeletonProps, Flex } from '@mantine/core'
 
-import 'react-loading-skeleton/dist/skeleton.css'
+interface Props extends SkeletonProps {
+	gap?: string
+	number?: number
+}
 
-export default function Skeleton(props: SkeletonProps) {
+export default function Skeleton(props: Props) {
 	return (
-		<S baseColor="#444" highlightColor="#666" {...props} />
+		<Flex rowGap={props.gap || '8px'} direction="column">
+			{new Array(props.number || 1).fill(null).map((e, i) => <S key={i} {...props} />)}
+		</Flex>
 	)
 }

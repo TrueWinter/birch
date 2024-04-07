@@ -1,16 +1,8 @@
-.settings {
-	composes: popup from './_common.module.css';
-	max-height: unset !important;
-	overflow: unset !important;
+.selectFolder {
+	cursor: pointer !important;
 }
 
-.licenseText {
-	margin-top: 4px;
-	text-align: center;
-	display: block;
-	width: 100%;
-}
-
-:global(.setting-container) {
-	margin-bottom: 4px;
+.selectFolder:focus {
+	/* Don't want the outline after clicking */
+	--input-bd: inherit !important;
 }

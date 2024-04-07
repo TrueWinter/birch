@@ -1,21 +1,25 @@
-import buttonCss from '../../css/AdvancedSearch/RemoveButton.module.css'
+import { Button } from '@mantine/core'
 
 interface RemoveButtonProps {
 	remove: Function
-	className?: string
 	text?: string
 	disable?: boolean
+	red?: boolean
+	alignEnd?: boolean
 }
 
 export default function RemoveButton({
 	remove,
-	className = '',
 	text = '-',
-	disable = false
+	disable = false,
+	red = false,
+	alignEnd = false
 }: RemoveButtonProps) {
 	return (
 		<>
-			<button className={[buttonCss.button, buttonCss.mr8, className].filter(e=>e).join(' ')} onClick={() => remove()} disabled={disable}>{text}</button>
+			<Button size="compact-md" bg={red ? 'red' : undefined} onClick={() => remove()} disabled={disable} style={{
+				alignSelf: alignEnd ? 'end' : undefined
+			}}>{text}</Button>
 		</>
 	)
 }

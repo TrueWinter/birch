@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@popperjs/core": "^2.11.8",
+    "@tabler/icons-react": "^3.1.0",
     "@types/semver": "^7.5.0",
     "@types/uuid": "^9.0.2",
     "autoprefixer": "^10.4.14",

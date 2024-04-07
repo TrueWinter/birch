@@ -1,26 +1,24 @@
 import { KeyboardEvent, useEffect, useRef } from 'react'
-import { BsGear, BsFolder2Open } from 'react-icons/bs'
 import { ISearchGroup } from './AdvancedSearch'
 
-import css from '../css/Header.module.css'
+import { Button, Flex, TextInput, Center, Anchor, ActionIcon } from '@mantine/core'
+import { IconFolder, IconSettings } from '@tabler/icons-react'
 
 interface HeaderProps {
-	showSettings: Function
-	showFileSelector: Function
-	setHeaderHeight: Function
+	openSettings: Function
+	openFileSelector: Function
+	openAdvancedSearch: Function
 	clearLogs: Function
-	setAdvancedSearchShown: Function
 	setSearchQuery: Function
 	searchQuery: string | ISearchGroup
 	nonLatestFileLoaded: boolean
 }
 
 export default function Header({
-	showSettings,
-	showFileSelector,
-	setHeaderHeight,
+	openSettings,
+	openFileSelector,
+	openAdvancedSearch,
 	clearLogs,
-	setAdvancedSearchShown,
 	setSearchQuery,
 	searchQuery,
 	nonLatestFileLoaded
@@ -38,54 +36,38 @@ export default function Header({
 		setSearchQuery(searchRef.current.value);
 	}
 
-	function handleResize() {
-		setHeaderHeight(headerRef.current.clientHeight);
+	if (typeof searchQuery === 'object') {
+		searchRef.current.value = '';
 	}
-
-	useEffect(() => {
-		handleResize();
-		window.addEventListener('resize', handleResize);
-
-		return () => {
-			window.removeEventListener('resize', handleResize);
-		}
-	}, [])
-
-	useEffect(() => {
-		if (typeof searchQuery === 'object') {
-			searchRef.current.value = '';
-		}
-	}, [searchQuery])
 
 	return (
 		<>
-			<div ref={headerRef}>
-				{!nonLatestFileLoaded &&
-					<div className="input-box">
-						<button className={['input', css.clearLogsBtn].join(' ')} onClick={() => clearLogs(null)}>Clear Logs</button>
-					</div>
+			<Flex justify="space-between" align="center" style={{
+				padding: '6px',
+				borderBottom: '1px solid grey'
+			}} ref={headerRef}>
+				{!nonLatestFileLoaded ?
+					<Button onClick={() => clearLogs(null)}>Clear Logs</Button> :
+					<div>Non-latest log file loaded</div>
 				}
-				{nonLatestFileLoaded && <div className={css.nonLatest}>Non-latest log file loaded</div>}
-				<div className={css.search}>
-					<div className="input-box" id="input">
-						<input className="input" type="text" autoComplete="off" ref={searchRef} onKeyUp={onKeyUp} placeholder={typeof searchQuery === 'object' ? 'Using advanced search' : undefined} />
-						<button className="btn" onClick={search}>Search</button>
-					</div>
-					<div className={css.useAdvancedSearchBtn}>
-						<span onClick={() => setAdvancedSearchShown(true)}>Use advanced search</span>
-					</div>
-				</div>
-				<div className={css.iconGroup}>
-					<div onClick={showFileSelector as any}>
-						<BsFolder2Open />
-					</div>
+				<Flex direction="column">
+					<Flex columnGap={8}>
+						<TextInput autoComplete="off" ref={searchRef} onKeyUp={onKeyUp} placeholder={typeof searchQuery === 'object' ? 'Using advanced search' : undefined} />
+						<Button onClick={search}>Search</Button>
+					</Flex>
+					<Center><Anchor component="span" onClick={() => openAdvancedSearch()}>Use advanced search</Anchor></Center>
+				</Flex>
+				<Flex columnGap={8}>
+					<ActionIcon onClick={() => openFileSelector()} size={40}>
+						<IconFolder size={32} />
+					</ActionIcon>
 					{!nonLatestFileLoaded && 
-						<div onClick={showSettings as any}>
-							<BsGear />
-						</div>
+						<ActionIcon onClick={() => openSettings()} size={40}>
+							<IconSettings size={32} />
+						</ActionIcon>
 					}
-				</div>
-			</div>
+				</Flex>
+			</Flex>
 		</>
 	)
 }

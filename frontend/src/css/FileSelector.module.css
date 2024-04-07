@@ -1,25 +1,5 @@
-.popup {
-	composes: popup from './_common.module.css';
-	z-index: 1050 !important;
-	max-height: 60% !important;
-}
-
-.heading {
-	margin-top: 4px;
-	margin-bottom: 4px;
-}
-
-.button {
-	padding: 4px;
-	cursor: pointer;
-	border: 0;
-	border-radius: 4px;
-}
-
 .files {
-	max-height: 116px;
-	overflow-y: auto;
-	border: 1px solid grey;
+	border: 0.0625rem solid #424242;
 	border-radius: 4px;
 	padding: 4px;
 }
@@ -34,16 +14,4 @@
 
 .file:hover {
 	background-color: #333;
-}
-
-.search {
-	margin: 8px 0px;
-}
-
-.searchDiv {
-	/*
-		Allows the search input to take up 100% of the space.
-		Width 100% overflowed, so not using that method here.
-	*/
-	display: grid;
 }

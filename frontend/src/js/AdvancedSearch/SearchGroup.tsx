@@ -1,22 +1,22 @@
 import { Fragment, useEffect, KeyboardEvent, ChangeEvent } from 'react'
 import { v4 as uuid } from 'uuid'
+import { Fieldset, NativeSelect, Group, Flex, ActionIcon, Modal } from '@mantine/core'
 
 import { ISearchGroup, Input, InputValue, SearchMode, SearchType } from '../AdvancedSearch'
 import RemoveButton from './RemoveButton'
 import AddButton from './AddButton'
-import TooltipHelpButton from './TooltipHelpButton'
 import { findNestedInput, findGroupParent } from '../utils/searchGroup'
 import SearchInput from '../SearchInput'
 
 import css from '../../css/AdvancedSearch/SearchGroup.module.css'
-import asCss from '../../css/AdvancedSearch.module.css'
+import { IconHelp } from '@tabler/icons-react'
+import { useDisclosure } from '@mantine/hooks'
+import SearchModeHelp from './SearchModeHelp'
 
 export interface SearchGroupProps {
 	id?: string
 	searchData: ISearchGroup
 	setSearchData: React.Dispatch<React.SetStateAction<ISearchGroup>>
-	setSearchModeHelpButtonRef: React.Dispatch<React.SetStateAction<React.MutableRefObject<HTMLButtonElement> | undefined>>
-	setSearchTypeHelpButtonRef: React.Dispatch<React.SetStateAction<React.MutableRefObject<HTMLButtonElement> | undefined>>
 	remove?: Function
 }
 
@@ -24,10 +24,10 @@ export default function SearchGroup({
 	id,
 	searchData,
 	setSearchData,
-	setSearchModeHelpButtonRef,
-	setSearchTypeHelpButtonRef,
 	remove
 }: SearchGroupProps) {
+	const [helpOpened, { close: closeHelp, open: openHelp }] = useDisclosure(false);
+
 	function sortInputs(inputs: Input[]) {
 		// Groups should always be below inputs
 		inputs.sort((a, b) => {
@@ -166,49 +166,48 @@ export default function SearchGroup({
 		})
 	}
 
-	useEffect(() => {
-		if (searchData.terms.length === 0) {
-			addInput();
-		}
-	})
-
 	return (
-		<div data-id={id} className={css.group}>
-			<div className={['input-box', asCss.mb8].join(' ')}>
-				Search mode: <select className="input" autoComplete="off" value={searchData.mode} onChange={setSearchMode}>
-					<option value="all">all</option>
-					<option value="any">any</option>
-				</select>
-				<TooltipHelpButton setButtonRef={setSearchModeHelpButtonRef} />
-			</div>
-			<div className={['input-box', asCss.mb8].join(' ')}>
-				Search type: <select className="input" autoComplete="off" value={searchData.type} onChange={setSearchType}>
-					<option value="include">include</option>
-					<option value="exclude">exclude</option>
-				</select>
-				<TooltipHelpButton setButtonRef={setSearchTypeHelpButtonRef} />
-			</div>
+		<>
+			<Fieldset w="100%" legend="Search group" data-id={id} classNames={{
+				root: css.group
+			}}>
+				<Flex justify="space-between" align="center" gap="16px">
+					<Group w="100%" grow>
+						<NativeSelect label="Search mode" data={['all', 'any']} value={searchData.mode} onChange={setSearchMode} />
+						<NativeSelect label="Search type" data={['include', 'exclude']} value={searchData.type} onChange={setSearchType} />
+					</Group>
+					<ActionIcon onClick={openHelp}><IconHelp /></ActionIcon>
+				</Flex>
 
-			{searchData.terms.filter(v => typeof v.value === 'string').length === 0 && <AddButton className={asCss.mb8} addInput={() => addInput('')} addGroup={() => addInput({ mode: 'all', type: 'include', terms: [{ key: uuid(), value: '' }] })} />}
+				<Flex direction="column" rowGap="8px" style={{
+					marginTop: '8px'
+				}}>
+					{searchData.terms.filter(v => typeof v.value === 'string').length === 0 && <AddButton addInput={() => addInput('')}
+						addGroup={() => addInput({ mode: 'all', type: 'include', terms: [{ key: uuid(), value: '' }] })} alignEnd />}
 
-			<div>
-				{searchData.terms.map((e, i, a) =>
-					<Fragment key={e.key}>
-						<div className={['input-box', asCss.mb8].join(' ')}>
-							{typeof e.value === 'string' ? 
-								<>
-									<SearchInput data={e} onChange={onChange} onClear={onClear} />
+					{searchData.terms.map((e, i, a) =>
+						<Flex justify="space-between" align="center" gap="8px" w="100%" style={{
+							flexGrow: 1
+						}} key={e.key}>
+							{typeof e.value === 'string' ? <>
+									<Group w="100%" grow>
+										<SearchInput data={e} onChange={onChange} onClear={onClear} />
+									</Group>
 									<RemoveButton disable={a.length === 1} remove={() => removeInput(e.key)} />
 								</> :
-								<SearchGroup searchData={e.value} remove={() => removeGroup(e.key)} setSearchData={setSearchData} id={e.key}
-									setSearchModeHelpButtonRef={setSearchModeHelpButtonRef} setSearchTypeHelpButtonRef={setSearchTypeHelpButtonRef} />
+								<SearchGroup searchData={e.value} remove={() => removeGroup(e.key)} setSearchData={setSearchData} id={e.key} />
 							}
 							{i === a.filter(v => typeof v.value === 'string').length - 1 && <AddButton addInput={() => addInput('')} addGroup={() => addInput({ mode: 'all', type: 'include', terms: [{ key: uuid(), value: '' }] })} />}
-						</div>
-					</Fragment>
-				)}
-				{remove && <RemoveButton remove={remove} className={css['remove-group']} text="Remove group" />}
-			</div>
-		</div>
+						</Flex>
+					)}
+
+					{remove && <RemoveButton remove={remove} text="Remove group" red alignEnd />}
+				</Flex>
+			</Fieldset>
+
+			<Modal opened={helpOpened} onClose={closeHelp} title="Advanced Search Help" centered>
+				<SearchModeHelp />
+			</Modal>
+		</>
 	)
 }

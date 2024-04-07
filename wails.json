@@ -11,9 +11,9 @@
     "email": "support@truewinter.dev"
   },
   "info": {
-	"productVersion": "1.0.2",
+	"productVersion": "1.1.0",
 	"companyName": "TrueWinter",
-	"copyright": "Copyright 2023 TrueWinter",
+	"copyright": "Copyright 2024 TrueWinter",
 	"productName": "Birch",
 	"comments": "Built using Wails (https://wails.io)"
   }

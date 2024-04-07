@@ -1,10 +1,7 @@
 import { useEffect, useState } from 'react'
 import semver from 'semver'
-import CloseButton from './CloseButton'
 import { main } from '../../wailsjs/go/models'
-
-import css from '../css/UpdateNotification.module.css'
-
+import { Anchor, Notification } from '@mantine/core'
 
 // Only the fields we care about
 export interface Release {
@@ -15,16 +12,15 @@ export interface Release {
 }
 
 interface UpdateNotificationProps {
-	setUpdatePopupShown: React.Dispatch<React.SetStateAction<boolean>>
+	openUpdateModal: () => void
 	setUpdateInfo: React.Dispatch<React.SetStateAction<Release>>
 }
 
 export default function UpdateNotification({
-	setUpdatePopupShown,
+	openUpdateModal,
 	setUpdateInfo
 }: UpdateNotificationProps) {
 	const [show, setShow] = useState(false);
-	const [updateUrl, setUpdateUrl] = useState('');
 
 	function isVersionNewer(newVersion: string, oldVersion: string) {
 		newVersion = newVersion.replace(/^v/, '');
@@ -39,14 +35,13 @@ export default function UpdateNotification({
 		let release: Release = await resp.json();
 
 		if (isVersionNewer(release.tag_name, `v${window.VERSION}`)) {
-			setUpdateUrl(release.html_url);
 			setUpdateInfo(release);
 			setShow(true);
 		}
 	}
 
 	function openUrl() {
-		setUpdatePopupShown(true);
+		openUpdateModal();
 		setShow(false);
 	}
 
@@ -57,10 +52,13 @@ export default function UpdateNotification({
 	return (
 		<>
 			{show &&
-				<div className={css.notification}>
-					<CloseButton onClick={() => setShow(false)} />
-					<div>An update is available. <a href="#" onClick={openUrl}>Click here to download it.</a></div>
-				</div>
+				<Notification style={{
+					position: 'fixed',
+					bottom: '12px',
+					right: '24px'
+				}} onClose={() => setShow(false)}>
+					<div>An update is available. <Anchor href="#" onClick={openUrl}>Click here to download it.</Anchor></div>
+				</Notification>
 			}
 		</>
 	)

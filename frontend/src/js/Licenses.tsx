@@ -1,10 +1,11 @@
 import dompurify from 'dompurify'
 import { BrowserOpenURL } from '../../wailsjs/runtime/runtime'
 import licenses from '../../../licenses.json'
-import CloseButton from './CloseButton'
+
+import { Anchor, Modal, ScrollArea, Text } from '@mantine/core'
 
 import css from '../css/Licenses.module.css'
-import commonCss from '../css/_common.module.css'
+import { ModalBaseProps } from './App'
 
 interface RenderHTMLSafelyProps {
 	string: string
@@ -20,28 +21,24 @@ function RenderHTMLSafely({ string }: RenderHTMLSafelyProps) {
 	}} dangerouslySetInnerHTML={{ __html: clean }} />
 }
 
-interface LicensesProps {
-	setLicensesShown: Function
-}
-
 export default function Licenses({
-	setLicensesShown
-}: LicensesProps) {
+	opened,
+	close
+}: ModalBaseProps) {
 	return (
-		<div className={css.popup}>
-			<h1 className={commonCss.headingWithButton}>Open Source Licenses
-				<CloseButton onClick={() => setLicensesShown(false)} />
-			</h1>
-			<p>Birch is <a href="#" onClick={() => BrowserOpenURL('https://github.com/TrueWinter/birch')}>open-source software</a>, and as with most software, it would not be possible without the work of open-source software developers.</p>
+		<Modal opened={opened} onClose={close} title="Open Source Licenses" centered>
+			<div>Birch is <Anchor href="#" onClick={() => BrowserOpenURL('https://github.com/TrueWinter/birch')}>open-source software</Anchor>, and as with most software, it would not be possible without the work of open-source software developers.</div>
 			<hr />
-			<div className={css.licenses}>
+			<ScrollArea h={300} scrollbars="y" offsetScrollbars classNames={{
+				viewport: css.licenses
+			}}>
 				{licenses.map(e => <div key={e.module}>
 					<h2>{e.module}</h2>
 					<RenderHTMLSafely string={e.license.replace(/\n/g, '<br />')}/>
 				</div>)}
-			</div>
+			</ScrollArea>
 			<hr />
-			<p>Birch is not an official Minecraft product and is not approved by or associated with Mojang or Microsoft.</p>
-		</div>
+			<Text size="sm">Birch is not an official Minecraft product and is not approved by or associated with Mojang or Microsoft.</Text>
+		</Modal>
 	)
 }
