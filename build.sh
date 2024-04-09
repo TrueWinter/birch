@@ -1,5 +1,3 @@
-# The MacOS app is currently broken, run build.bat on a Windows machine instead
-
 # This build script must be run on a Mac
 set -e
 npm run test
