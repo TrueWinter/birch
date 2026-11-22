@@ -1,8 +1,9 @@
 import { KeyboardEvent, useEffect, useRef } from 'react'
 import { ISearchGroup } from './AdvancedSearch'
 
-import { Button, Flex, TextInput, Center, Anchor, ActionIcon } from '@mantine/core'
-import { IconFolder, IconSettings } from '@tabler/icons-react'
+import { Button, Flex, TextInput, Center, Anchor, ActionIcon, Menu } from '@mantine/core'
+import { IconCheck, IconFolder, IconFolders, IconSettings } from '@tabler/icons-react'
+import { main } from '../../wailsjs/go/models'
 
 interface HeaderProps {
 	openSettings: Function
@@ -12,6 +13,9 @@ interface HeaderProps {
 	setSearchQuery: Function
 	searchQuery: string | ISearchGroup
 	nonLatestFileLoaded: boolean
+	instances: main.Instance[]
+	activeInstance: string
+	switchInstance: Function
 }
 
 export default function Header({
@@ -21,7 +25,10 @@ export default function Header({
 	clearLogs,
 	setSearchQuery,
 	searchQuery,
-	nonLatestFileLoaded
+	nonLatestFileLoaded,
+	instances,
+	activeInstance,
+	switchInstance
 }: HeaderProps) {
 	const headerRef = useRef(null as unknown as HTMLDivElement);
 	const searchRef = useRef(null as unknown as HTMLInputElement);
@@ -58,6 +65,26 @@ export default function Header({
 					<Center><Anchor component="span" onClick={() => openAdvancedSearch()}>Use advanced search</Anchor></Center>
 				</Flex>
 				<Flex columnGap={8}>
+					<Menu shadow="md" width={260} position="bottom-end">
+						<Menu.Target>
+							<ActionIcon size={40} aria-label="Switch Minecraft instance">
+								<IconFolders size={32} />
+							</ActionIcon>
+						</Menu.Target>
+						<Menu.Dropdown>
+							<Menu.Label>Minecraft instances</Menu.Label>
+							{instances.map(instance =>
+								<Menu.Item key={instance.ID}
+									leftSection={instance.ID === activeInstance ? <IconCheck size={16} /> : <div style={{ width: 16 }} />}
+									onClick={() => switchInstance(instance.ID)}
+								>
+									{instance.Name || instance.MinecraftDirectory}
+								</Menu.Item>
+							)}
+							<Menu.Divider />
+							<Menu.Item onClick={() => openSettings()}>Manage instances...</Menu.Item>
+						</Menu.Dropdown>
+					</Menu>
 					<ActionIcon onClick={() => openFileSelector()} size={40}>
 						<IconFolder size={32} />
 					</ActionIcon>
