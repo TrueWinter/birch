@@ -301,16 +301,7 @@ func (a *App) loadLog(shouldDelete bool) {
 	file.Seek(lastFileSize, io.SeekStart)
 
 	reader := transform.NewReader(file, getCharMap().NewDecoder())
-	scanner := bufio.NewScanner(reader)
-	newLogs := []string{}
-
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		if strings.Contains(line, "[CHAT]") {
-			newLogs = append(newLogs, line)
-		}
-	}
+	newLogs := chatLinesFromReader(reader)
 
 	*linesCount = len(newLogs)
 
@@ -341,6 +332,21 @@ func (a *App) loadLog(shouldDelete bool) {
 			log.Println("Failed to remove temporary file", err.Error())
 		}
 	}
+}
+
+func chatLinesFromReader(reader io.Reader) []string {
+	scanner := bufio.NewScanner(reader)
+	lines := []string{}
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		if strings.Contains(line, "[CHAT]") {
+			lines = append(lines, line)
+		}
+	}
+
+	return lines
 }
 
 func (a *App) GetSettings() BirchConfig {
@@ -610,7 +616,7 @@ func (a *App) unzip(f string) (string, error) {
 
 	gz, gzErr := gzip.NewReader(file)
 	if gzErr != nil {
-		return "", err
+		return "", gzErr
 	}
 	gz.Close()
 

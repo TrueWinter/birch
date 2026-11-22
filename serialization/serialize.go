@@ -105,7 +105,7 @@ func serializeSearchGroup(search DSearchGroup) ([]byte, error) {
 				}
 
 				data = append(data, d[:]...)
-			case reflect.Map:
+			case reflect.Map, reflect.Struct:
 				d, err := serializeInput(t, "group")
 				if err != nil {
 					return make([]byte, 0), err

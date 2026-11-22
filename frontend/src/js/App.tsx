@@ -6,10 +6,12 @@ import { useDisclosure } from '@mantine/hooks'
 import Header from './Header'
 import LogViewer from './LogViewer'
 import Settings from './Settings'
-import AdvancedSearch, { InputValue, searchGroupFromSavedSearch } from './AdvancedSearch'
+import AdvancedSearch, { InputValue } from './AdvancedSearch'
+import { searchGroupFromSavedSearch } from './utils/savedSearch'
+import { splitLogChunk } from './utils/log'
 import UpdateNotification, { Release } from './UpdateNotification'
 import FileSelector from './FileSelector'
-import { SavedSearch } from './SavedSearch'
+import type { SavedSearch } from './SavedSearch'
 import UpdateModal from './UpdateModal'
 
 import '@mantine/core/styles.css'
@@ -32,12 +34,6 @@ export interface ModalBaseProps {
 // https://stackoverflow.com/a/54178819
 // SavedSearchQueries isn't needed in the state, so make it optional there
 type BirchConfig = Omit<main.BirchConfig, 'SavedSearchQueries' | 'MinecraftDirectory' | 'DefaultSearch'> & Partial<Pick<main.BirchConfig, 'SavedSearchQueries' | 'MinecraftDirectory' | 'DefaultSearch'>>
-
-function bracketFix(str: string) {
-	// See log event for reason
-	return str.startsWith('[') || str.length == 0 ?
-	str : `[${str}`
-}
 
 export default function App() {
 	const [logs, setLogs] = useState((JSON.parse(sessionStorage.getItem('logs') as string) || []) as Log[]);
@@ -120,11 +116,10 @@ export default function App() {
 
 		const newLogs = [] as Log[];
 
-		// Some log lines have multiple lines, so this is needed to split them properly
-		d.split('\n[').forEach(text => {
+		splitLogChunk(d).forEach(text => {
 			newLogs.push({
 				id: uuid(),
-				text: bracketFix(text)
+				text
 			});
 		});
 

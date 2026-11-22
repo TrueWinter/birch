@@ -2,9 +2,10 @@ import { expect, test } from 'vitest'
 import { v4 as uuid } from 'uuid'
 
 import { filter as doFilter } from '../frontend/src/js/utils/search'
-import { searchGroupFromSavedSearch, type ISearchGroup } from '../frontend/src/js/AdvancedSearch'
-import { type Log } from '../frontend/src/js/App'
-import { type SavedSearch } from '../frontend/src/js/SavedSearch'
+import { searchGroupFromSavedSearch } from '../frontend/src/js/utils/savedSearch'
+import type { ISearchGroup } from '../frontend/src/js/AdvancedSearch'
+import type { Log } from '../frontend/src/js/App'
+import type { SavedSearch } from '../frontend/src/js/SavedSearch'
 
 const testData: readonly Log[] = Object.freeze(
 	convertTestDataFormat([
@@ -271,3 +272,48 @@ for (let t of tests) {
 		expect(searchResult).toEqual(t.expected);
 	});
 }
+test('simple search is case-insensitive', () => {
+	expect(extractTextFromResult(filter('TESTING'))).toEqual([
+		'testing',
+		'MUCH TESTING such wow'
+	]);
+});
+
+test('empty simple search matches every log', () => {
+	expect(extractTextFromResult(filter(''))).toEqual(testData.map(e => e.text));
+});
+
+test('skipFilter matches every log', () => {
+	expect(extractTextFromResult(testData.filter(e => doFilter(true, 'does not exist', e))))
+		.toEqual(testData.map(e => e.text));
+});
+
+test('empty advanced search terms match every log', () => {
+	expect(extractTextFromResult(filter({
+		mode: 'any',
+		type: 'exclude',
+		terms: []
+	}))).toEqual(testData.map(e => e.text));
+});
+
+test('deeply nested search groups are evaluated', () => {
+	expect(extractTextFromResult(filter(searchGroupFromSavedSearch({
+		mode: 'all',
+		type: 'include',
+		terms: [{
+			mode: 'any',
+			type: 'include',
+			terms: [{
+				mode: 'all',
+				type: 'include',
+				terms: [
+					'test',
+					'ing'
+				]
+			}]
+		}]
+	})))).toEqual([
+		'testing',
+		'MUCH TESTING such wow'
+	]);
+});

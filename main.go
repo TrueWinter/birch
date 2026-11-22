@@ -174,7 +174,7 @@ func main() {
 
 	user, userErr := user.Current()
 	if userErr != nil {
-		log.Fatalf(userErr.Error())
+		log.Fatal(userErr)
 	}
 
 	userHomeDir := user.HomeDir
