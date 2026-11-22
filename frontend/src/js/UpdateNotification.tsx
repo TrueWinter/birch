@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import semver from 'semver'
 import { main } from '../../wailsjs/go/models'
 import { Anchor, Notification } from '@mantine/core'
+import { isVersionNewer } from './utils/update'
 
 // Only the fields we care about
 export interface Release {
@@ -21,13 +21,6 @@ export default function UpdateNotification({
 	setUpdateInfo
 }: UpdateNotificationProps) {
 	const [show, setShow] = useState(false);
-
-	function isVersionNewer(newVersion: string, oldVersion: string) {
-		newVersion = newVersion.replace(/^v/, '');
-		oldVersion = oldVersion.replace(/^v/, '');
-
-		return semver.gt(newVersion, oldVersion);
-	}
 
 	async function updateCheck() {
 		let resp = await fetch('https://api.github.com/repos/TrueWinter/Birch/releases/latest');

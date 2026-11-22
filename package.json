@@ -17,6 +17,8 @@
   },
   "scripts": {
     "generate-license-json": "node generate-license-json.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:go": "go test ./...",
+    "test:all": "npm test && npm run test:go"
   }
 }

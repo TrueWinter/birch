@@ -3,7 +3,7 @@ import { v4 as uuid } from 'uuid'
 import LoadSavedSearch from './LoadSavedSearch'
 import SaveSearch from './SaveSearch'
 import SearchGroup from './AdvancedSearch/SearchGroup'
-import { SavedSearch } from './SavedSearch'
+import type { SavedSearch } from './SavedSearch'
 import { Modal, Text, Button, Group } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 
@@ -11,6 +11,7 @@ import { DeleteSavedSearch, ExportSearchWithDialog, SaveSearchToBirchDirectory }
 import { serialization } from '../../wailsjs/go/models'
 import EmptyInputAlert from './AdvancedSearch/EmptyInputAlert'
 import { ModalBaseProps } from './App'
+import { savedSearchFromSearchGroup, searchGroupFromSavedSearch } from './utils/savedSearch'
 
 export type InputValue = string | ISearchGroup
 
@@ -36,25 +37,6 @@ interface AdvancedSearchProps extends ModalBaseProps {
 	searchQuery: InputValue
 	defaultSearch: string,
 	setDefaultSearch: Function
-}
-
-export function searchGroupFromSavedSearch(search: SavedSearch): ISearchGroup {
-	let searchGroup: ISearchGroup = {
-		// If the user has an invalid search mode, don't search using that.
-		// Instead, use the default search mode.
-		mode: SearchModeValues.includes(search.mode) ? search.mode : 'all',
-		type: SearchTypeValues.includes(search.type) ? search.type : 'include',
-		terms: []
-	};
-
-	for (let term of search.terms) {
-		searchGroup.terms.push({
-			key: uuid(),
-			value: typeof term === 'string' ? term : searchGroupFromSavedSearch(term)
-		})
-	}
-
-	return searchGroup;
 }
 
 export default function AdvancedSearch({
@@ -108,24 +90,6 @@ export default function AdvancedSearch({
 		}
 
 		return false;
-	}
-
-	function savedSearchFromSearchGroup(search: ISearchGroup): SavedSearch {
-		let savedSearch: SavedSearch = {
-			mode: search.mode,
-			type: search.type,
-			terms: []
-		}
-
-		for (let term of search.terms) {
-			if (typeof term.value === 'string') {
-				savedSearch.terms.push(term.value)
-			} else {
-				savedSearch.terms.push(savedSearchFromSearchGroup(term.value))
-			}
-		}
-
-		return savedSearch;
 	}
 
 	function loadSavedSearch(data: serialization.DSearchGroup) {
