@@ -31,7 +31,7 @@ export interface ModalBaseProps {
 
 // https://stackoverflow.com/a/54178819
 // SavedSearchQueries isn't needed in the state, so make it optional there
-type BirchConfig = Omit<main.BirchConfig, 'SavedSearchQueries'> & Partial<Pick<main.BirchConfig, 'SavedSearchQueries'>>
+type BirchConfig = Omit<main.BirchConfig, 'SavedSearchQueries' | 'MinecraftDirectory' | 'DefaultSearch'> & Partial<Pick<main.BirchConfig, 'SavedSearchQueries' | 'MinecraftDirectory' | 'DefaultSearch'>>
 
 function bracketFix(str: string) {
 	// See log event for reason
@@ -44,6 +44,8 @@ export default function App() {
 	const [loading, setLoading] = useState(true);
 	const [skipLogFilter, setSkipLogFilter] = useState(false);
 	const [settings, setSettings] = useState({} as BirchConfig);
+	const [instances, setInstances] = useState([] as main.Instance[]);
+	const [activeInstanceId, setActiveInstanceId] = useState('');
 	const [nonLatestFileLoaded, setNonLatestFileLoaded] = useState(false);
 	const [settingsShown, { open: openSettings, close: closeSettings }] = useDisclosure(false);
 	const [fileSelectorShown, { open: openFileSelector, close: closeFileSelector }] = useDisclosure(false);
@@ -54,22 +56,42 @@ export default function App() {
 
 	window.logs = logs;
 
+	function applyDefaultSearch(name: string) {
+		if (!name) {
+			setSearchQuery('');
+			return;
+		}
+
+		app.GetSavedSearches().then(searches => {
+			let defaultSearch = searches.filter(e => e.name === name);
+			if (defaultSearch.length != 0) {
+				setSearchQuery(searchGroupFromSavedSearch(defaultSearch[0].data as SavedSearch))
+			} else {
+				setSearchQuery('')
+			}
+		}).catch(err => {
+			console.error('Failed to load default search', err);
+			setSearchQuery('');
+		})
+	}
+
 	function getSettings(loadDefaultSearch = false) {
 		app.GetSettings().then((s) => {
+			const configInstances = s.Instances || [];
+			const active = configInstances.find(e => e.ID === s.ActiveInstance) || configInstances[0];
+
+			setInstances(configInstances);
+			setActiveInstanceId(active ? active.ID : '');
 			setSettings({
-				MinecraftDirectory: s.MinecraftDirectory,
+				Instances: configInstances,
+				ActiveInstance: active ? active.ID : '',
 				IgnoreOldLogs: s.IgnoreOldLogs,
 				SkipUpdateCheck: s.SkipUpdateCheck,
-				DefaultSearch: s.DefaultSearch
+				DefaultSearch: active ? active.DefaultSearch : ''
 			})
 
-			if (loadDefaultSearch && s.DefaultSearch) {
-				app.GetSavedSearches().then(searches => {
-					let defaultSearch = searches.filter(e => e.name === s.DefaultSearch);
-					if (defaultSearch.length != 0) {
-						setSearchQuery(searchGroupFromSavedSearch(defaultSearch[0].data as SavedSearch))
-					}
-				})
+			if (loadDefaultSearch) {
+				applyDefaultSearch(active ? active.DefaultSearch : '');
 			}
 		})
 	}
@@ -84,9 +106,6 @@ export default function App() {
 						app.ChangeSetting(e.target.dataset.setting, e.target.checked);
 						break;
 				}
-				break;
-			case 'string':
-				app.ChangeSetting(e, '');
 				break;
 		}
 	}
@@ -146,12 +165,31 @@ export default function App() {
 	}
 
 	function setDefaultSearch(name: string) {
-		setSettings(s => {
-			let settingsCopy = {...s};
-			settingsCopy.DefaultSearch = s.DefaultSearch === name ? '' : name;
-			app.ChangeSetting('DefaultSearch', settingsCopy.DefaultSearch)
-			return settingsCopy
-		})
+		const defaultSearch = settings.DefaultSearch === name ? '' : name;
+		app.SetInstanceDefaultSearch(activeInstanceId, defaultSearch).catch(err => {
+			alert(`An error occurred: ${err}`);
+		});
+	}
+
+	function switchInstance(id: string) {
+		app.SwitchInstance(id).catch(err => {
+			alert(`An error occurred: ${err}`);
+		});
+	}
+
+	function handleInstanceChanged(instance: main.Instance) {
+		setActiveInstanceId(instance.ID);
+		setSettings(s => ({
+			...s,
+			ActiveInstance: instance.ID,
+			DefaultSearch: instance.DefaultSearch
+		}));
+		setInstances(prev => prev.map(e => e.ID === instance.ID ? instance : e));
+		setNonLatestFileLoaded(false);
+		closeFileSelector();
+		resetLogs(null);
+		applyDefaultSearch(instance.DefaultSearch);
+		app.LoadLog(false);
 	}
 
 	useEffect(() => {
@@ -163,6 +201,7 @@ export default function App() {
 		runtime.EventsOn('error', handleMessage);
 		runtime.EventsOn('nonLatestFileLoaded', handleNonLatestFileLoaded);
 		runtime.EventsOn('logFileSelected', handleLogFileSelected);
+		runtime.EventsOn('instanceChanged', handleInstanceChanged);
 
 		app.LoadLog(false);
 		getSettings(true);
@@ -170,7 +209,8 @@ export default function App() {
 		return () => {
 			runtime.EventsOff(
 				'log', 'setLoadStatus', 'changed', 'settingsChanged',
-				'message', 'error', 'nonLatestFileLoaded', 'logFileSelected'
+				'message', 'error', 'nonLatestFileLoaded', 'logFileSelected',
+				'instanceChanged'
 			);
 		}
 	}, [])
@@ -186,19 +226,21 @@ export default function App() {
 					openFileSelector={openFileSelector} clearLogs={resetLogs}
 					openAdvancedSearch={openAdvancedSearch} setSearchQuery={setSearchQuery}
 					searchQuery={searchQuery} nonLatestFileLoaded={nonLatestFileLoaded}
+					instances={instances} activeInstance={activeInstanceId}
+					switchInstance={switchInstance}
 				/>
 
 				<LogViewer logs={logs} searchQuery={searchQuery} skipFilter={skipLogFilter} loading={loading} />
 			</Flex>
 
-			<Settings minecraftLocation={settings.MinecraftDirectory}
+			<Settings instances={instances} activeInstance={activeInstanceId}
 				ignoreLogs={settings.IgnoreOldLogs} skipUpdateCheck={settings.SkipUpdateCheck} 
 				version={window.VERSION} opened={settingsShown} close={closeSettings}
-				handleChange={handleSettingChange}
+				handleChange={handleSettingChange} refreshSettings={getSettings}
 			/>
 
 			<AdvancedSearch opened={advancedSearchShown} close={closeAdvancedSearch}
-				setSearchQuery={setSearchQuery} searchQuery={searchQuery} defaultSearch={settings.DefaultSearch}
+				setSearchQuery={setSearchQuery} searchQuery={searchQuery} defaultSearch={settings.DefaultSearch || ''}
 				setDefaultSearch={setDefaultSearch}
 			/>
 

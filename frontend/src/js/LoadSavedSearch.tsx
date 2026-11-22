@@ -96,7 +96,7 @@ export default function LoadSavedSearch({
 						</Table.Tbody>
 					</Table>
 
-					<Text size="sm">The default search will be applied every time Birch is opened.</Text>
+					<Text size="sm">The default search will be applied every time this instance is opened or switched to.</Text>
 				</div>
 			</Modal>
 
