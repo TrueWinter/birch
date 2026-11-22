@@ -227,10 +227,6 @@ func (a *App) startWatching() {
 func (a *App) ready(ctx context.Context) {
 	a.startWatching()
 
-	if !config.SkipUpdateCheck {
-		runtime.EventsEmit(ctx, "updateCheck")
-	}
-
 	if len(config.SavedSearchQueries) != 0 {
 		log.Println("Found legacy SavedSearchQueries. Converting to BSS files")
 

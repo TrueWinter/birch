@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { main } from '../../wailsjs/go/models'
 import { Anchor, Notification } from '@mantine/core'
-import { isVersionNewer } from './utils/update'
+import { CheckForUpdates } from '../../wailsjs/go/main/App'
+import * as runtime from '../../wailsjs/runtime/runtime.js'
 
 // Only the fields we care about
 export interface Release {
@@ -22,24 +23,24 @@ export default function UpdateNotification({
 }: UpdateNotificationProps) {
 	const [show, setShow] = useState(false);
 
-	async function updateCheck() {
-		let resp = await fetch('https://api.github.com/repos/TrueWinter/Birch/releases/latest');
-		if (resp.status !== 200) return;
-		let release: Release = await resp.json();
-
-		if (isVersionNewer(release.tag_name, `v${window.VERSION}`)) {
-			setUpdateInfo(release);
-			setShow(true);
-		}
-	}
-
 	function openUrl() {
 		openUpdateModal();
 		setShow(false);
 	}
 
 	useEffect(() => {
-		updateCheck();
+		runtime.EventsOn('updateAvailable', (release: Release) => {
+			setUpdateInfo(release);
+			setShow(true);
+		});
+
+		CheckForUpdates().catch(err => {
+			console.error('Failed to check for updates', err);
+		});
+
+		return () => {
+			runtime.EventsOff('updateAvailable');
+		}
 	}, []);
 
 	return (
