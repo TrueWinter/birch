@@ -6,7 +6,7 @@ on:
       - 'v*'
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   NODE_OPTIONS: '--max-old-space-size=4096'
@@ -45,6 +45,8 @@ jobs:
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       - run: npm ci
+      - run: npm ci --prefix frontend
+      - run: go mod download
 
       - name: Build Linux
         run: ./build-linux.sh
@@ -85,6 +87,8 @@ jobs:
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       - run: npm ci
+      - run: npm ci --prefix frontend
+      - run: go mod download
 
       - name: Build Windows
         run: ./build-windows.sh
@@ -118,6 +122,8 @@ jobs:
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       - run: npm ci
+      - run: npm ci --prefix frontend
+      - run: go mod download
 
       - name: Build macOS
         run: ./build-darwin.sh
@@ -134,6 +140,8 @@ jobs:
       - build-windows
       - build-macos
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
