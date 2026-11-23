@@ -38,3 +38,4 @@ ln -s usr/share/icons/hicolor/256x256/apps/birch.png "$appdir/birch.png"
 
 ARCH=x86_64 appimagetool "$appdir" "build/bin/Birch-amd64.AppImage"
 rm -rf "$appdir"
+rm build/bin/Birch
