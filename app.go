@@ -899,10 +899,42 @@ func findAppropriateAsset(assets []GithubAsset) (GithubAsset, error) {
 			return asset, nil
 		} else if isMac() && strings.HasSuffix(asset.Name, ".pkg") {
 			return asset, nil
+		} else if isLinux() && strings.HasSuffix(asset.Name, ".AppImage") {
+			return asset, nil
 		}
 	}
 
 	return GithubAsset{}, errors.New("no suitable binary found")
+}
+
+func createLinuxUpdateFile(assetName string) (*os.File, error) {
+	var candidates []string
+	if appImage := os.Getenv("APPIMAGE"); appImage != "" {
+		candidates = append(candidates, filepath.Dir(appImage))
+	}
+	if cacheDir, err := os.UserCacheDir(); err == nil {
+		candidates = append(candidates, filepath.Join(cacheDir, "TrueWinter", "Birch"))
+	}
+	candidates = append(candidates, os.TempDir())
+
+	var lastErr error
+	for _, dir := range candidates {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			lastErr = err
+			continue
+		}
+
+		file, err := os.CreateTemp(dir, assetName+".*")
+		if err == nil {
+			return file, nil
+		}
+		lastErr = err
+	}
+
+	if lastErr == nil {
+		lastErr = errors.New("no writable directory for update download")
+	}
+	return nil, lastErr
 }
 
 func (a *App) DownloadUpdate(assets []GithubAsset) (string, error) {
@@ -911,8 +943,15 @@ func (a *App) DownloadUpdate(assets []GithubAsset) (string, error) {
 		return "", assetError
 	}
 
-	tempDir := os.TempDir()
-	tempFile, tempFileErr := os.Create(tempDir + sep() + asset.Name)
+	var tempFile *os.File
+	var tempFileErr error
+	if isLinux() {
+		tempFile, tempFileErr = createLinuxUpdateFile(asset.Name)
+	} else {
+		ext := filepath.Ext(asset.Name)
+		pattern := strings.TrimSuffix(asset.Name, ext) + "-*" + ext
+		tempFile, tempFileErr = os.CreateTemp(os.TempDir(), pattern)
+	}
 	if tempFileErr != nil {
 		return "", tempFileErr
 	}
@@ -938,6 +977,58 @@ func (a *App) DownloadUpdate(assets []GithubAsset) (string, error) {
 	return tempFile.Name(), nil
 }
 
+func installLinuxUpdate(file string) (string, error) {
+	appImage := os.Getenv("APPIMAGE")
+	if appImage == "" {
+		if err := os.Chmod(file, 0755); err != nil {
+			return "", err
+		}
+		return file, nil
+	}
+
+	// Replacing the running AppImage is safe because the current process keeps
+	// using the old inode while new launches pick up the new one.
+	if err := os.Rename(file, appImage); err == nil {
+		if chmodErr := os.Chmod(appImage, 0755); chmodErr != nil {
+			return "", chmodErr
+		}
+		return appImage, nil
+	}
+
+	// Rename fails across filesystems, so copy next to the target and swap atomically.
+	dir := filepath.Dir(appImage)
+	tmp, err := os.CreateTemp(dir, ".birch-update-*")
+	if err != nil {
+		return "", err
+	}
+	tmpName := tmp.Name()
+	defer os.Remove(tmpName)
+
+	src, err := os.Open(file)
+	if err != nil {
+		tmp.Close()
+		return "", err
+	}
+	defer src.Close()
+
+	if _, err = io.Copy(tmp, src); err != nil {
+		tmp.Close()
+		return "", err
+	}
+	if err = tmp.Chmod(0755); err != nil {
+		tmp.Close()
+		return "", err
+	}
+	if err = tmp.Close(); err != nil {
+		return "", err
+	}
+	if err = os.Rename(tmpName, appImage); err != nil {
+		return "", err
+	}
+
+	return appImage, nil
+}
+
 func (a *App) InstallUpdate(file string) error {
 	log.Println("Installing", file, "as requested by user")
 
@@ -945,8 +1036,17 @@ func (a *App) InstallUpdate(file string) error {
 	if isWindows() {
 		// Running it with cmd allows the UAC popup to show
 		cmd = exec.Command("cmd", "/c", file)
-	} else {
+	} else if isMac() {
 		cmd = exec.Command("open", file)
+	} else if isLinux() {
+		installPath, installErr := installLinuxUpdate(file)
+		if installErr != nil {
+			return installErr
+		}
+
+		cmd = exec.Command(installPath)
+	} else {
+		return errors.New("unsupported operating system")
 	}
 	cmdErr := cmd.Start()
 	if cmdErr != nil {

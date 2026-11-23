@@ -1,6 +1,6 @@
 # Birch
 
-Birch is a Minecraft log viewer that allows you to easily search chat logs. It can be used on Windows and Mac.
+Birch is a Minecraft log viewer that allows you to easily search chat logs. It can be used on Windows, Mac, and Linux.
 
 | ![Main window](.github/images/main.png) |
 |:---:|
@@ -10,10 +10,13 @@ Birch is a Minecraft log viewer that allows you to easily search chat logs. It c
 
 - Windows 10/11
 - MacOS (it works on Sonoma, compatibility with previous versions of macOS is not guaranteed)
+- Linux (x64; requires GTK 3 and WebKitGTK)
 
 ## Usage
 
 After installing and opening Birch, it should show the chat from your latest log file. If it can't find the file, your Minecraft installation might not be in the default location. This can be changed from the Birch settings.
+
+On Linux, Birch uses `~/.minecraft` as the default Minecraft directory and stores its configuration and saved searches in `~/.local/share/TrueWinter/Birch`.
 
 ### Multiple Instances
 
@@ -42,6 +45,18 @@ You can load old log files from your Minecraft folder, or from anywhere on your 
 | ![Old log files](.github/images/load-log.png) |
 |:---:|
 | Birch allows you to open old log files |
+
+## Building
+
+Each installer is built with a platform-specific script:
+
+- `./build-darwin.sh` builds the macOS `.pkg` and must be run on macOS.
+- `./build-windows.sh` builds the Windows installer and requires Wails' Windows packaging tools.
+- `./build-linux.sh` builds the Linux `.AppImage` and must be run on Linux.
+
+`./build.sh` runs the script for the current platform.
+
+The Linux build requires the Wails dependencies, including Go, Node.js, GTK 3, and WebKitGTK. Distributions that only provide WebKitGTK 4.1 need to set `WAILS_TAGS=webkit2_41`. AppImage packaging also requires `appimagetool`.
 
 
 ## Disclaimer

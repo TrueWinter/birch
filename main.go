@@ -138,7 +138,7 @@ func ui(app *App) {
 			Assets: assets,
 		},
 		Windows: &windows.Options{
-			WebviewUserDataPath: birchConfigDir + "\\wv2",
+			WebviewUserDataPath: birchConfigDir + sep() + "wv2",
 		},
 		EnableDefaultContextMenu: true,
 		BackgroundColour:         &options.RGBA{R: 0x33, G: 0x33, B: 0x33, A: 1},
