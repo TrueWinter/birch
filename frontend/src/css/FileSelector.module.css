@@ -2,6 +2,8 @@
 	border: 0.0625rem solid #424242;
 	border-radius: 4px;
 	padding: 4px;
+	user-select: none;
+	-webkit-user-select: none;
 }
 
 .file {
@@ -14,4 +16,12 @@
 
 .file:hover {
 	background-color: #333;
+}
+
+.fileSelected {
+	background-color: #1f4f82;
+}
+
+.fileSelected:hover {
+	background-color: #26619f;
 }

@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	goruntime "runtime"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -37,6 +39,7 @@ var linesCount *int
 var didDoInitialLogIgnore bool
 var shouldLoadLog bool
 var fileToLoad string
+var loadGeneration uint64
 
 // NewApp creates a new App application struct
 func NewApp() *App {
@@ -104,6 +107,7 @@ func (a *App) startWatchingLockedWith(existingContentIsNew bool) {
 
 	latestLogFile := latestLogFileFor(active.MinecraftDirectory)
 	fileToLoad = latestLogFile
+	loadGeneration++
 	didDoInitialLogIgnore = existingContentIsNew
 	shouldLoadLog = true
 	*fileSize = 0
@@ -587,22 +591,6 @@ func (a *App) SwitchInstance(id string) error {
 	return nil
 }
 
-func (a *App) loadLogFile(file string, filename string, delete bool) {
-	a.mutex.Lock()
-	fileToLoad = file
-	didDoInitialLogIgnore = true
-	*fileSize = 0
-	*linesCount = 0
-	shouldLoadLog = true
-	a.stopWatchingLocked()
-
-	a.loadLog(delete)
-	a.mutex.Unlock()
-
-	runtime.EventsEmit(a.ctx, "nonLatestFileLoaded")
-	runtime.WindowSetTitle(a.ctx, "Birch: "+filename)
-}
-
 func (a *App) unzip(f string) (string, error) {
 	file, err := os.Open(f)
 	if err != nil {
@@ -628,23 +616,188 @@ func (a *App) unzip(f string) (string, error) {
 }
 
 func (a *App) OpenLogFileWithName(file string) {
+	a.OpenLogFilesWithNames([]string{file})
+}
+
+func isASCIIDigit(c byte) bool {
+	return c >= '0' && c <= '9'
+}
+
+// naturalCompare compares strings while treating runs of digits as numbers.
+// This keeps date-stamped rotated logs such as 2024-01-01-2.log before
+// 2024-01-01-10.log, which a plain lexicographic comparison would reverse.
+func naturalCompare(a, b string) int {
+	ai, bi := 0, 0
+
+	for ai < len(a) && bi < len(b) {
+		if isASCIIDigit(a[ai]) && isASCIIDigit(b[bi]) {
+			aStart, bStart := ai, bi
+			for ai < len(a) && isASCIIDigit(a[ai]) {
+				ai++
+			}
+			for bi < len(b) && isASCIIDigit(b[bi]) {
+				bi++
+			}
+
+			aNumber := strings.TrimLeft(a[aStart:ai], "0")
+			bNumber := strings.TrimLeft(b[bStart:bi], "0")
+
+			if len(aNumber) != len(bNumber) {
+				if len(aNumber) < len(bNumber) {
+					return -1
+				}
+				return 1
+			}
+
+			if aNumber != bNumber {
+				return strings.Compare(aNumber, bNumber)
+			}
+
+			continue
+		}
+
+		if a[ai] != b[bi] {
+			return strings.Compare(a[ai:ai+1], b[bi:bi+1])
+		}
+
+		ai++
+		bi++
+	}
+
+	if ai < len(a) {
+		return 1
+	}
+	if bi < len(b) {
+		return -1
+	}
+	return 0
+}
+
+func sortedLogFiles(files []string) []string {
+	sorted := append([]string(nil), files...)
+	sort.Slice(sorted, func(i, j int) bool {
+		a, b := filepath.Base(sorted[i]), filepath.Base(sorted[j])
+		comparison := naturalCompare(a, b)
+		if comparison != 0 {
+			return comparison < 0
+		}
+		return sorted[i] < sorted[j]
+	})
+	return sorted
+}
+
+func (a *App) readChatLinesFromFile(file string) ([]string, error) {
+	var f *os.File
+	var err error
+
+	switch {
+	case strings.HasSuffix(file, ".log.gz"):
+		tempFile, unzipErr := a.unzip(file)
+		if unzipErr != nil {
+			return nil, unzipErr
+		}
+		defer os.Remove(tempFile)
+
+		f, err = os.Open(tempFile)
+	case strings.HasSuffix(file, ".log"):
+		f, err = os.Open(file)
+	default:
+		return nil, errors.New("file type not supported")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	reader := transform.NewReader(f, getCharMap().NewDecoder())
+	return chatLinesFromReader(reader), nil
+}
+
+func (a *App) OpenLogFilesWithNames(files []string) {
 	runtime.EventsEmit(a.ctx, "setLoadStatus", true)
+
+	files = sortedLogFiles(files)
+
+	a.mutex.Lock()
+	loadGeneration++
+	generation := loadGeneration
+	a.mutex.Unlock()
+
+	newLogs := []string{}
+	loadedFiles := []string{}
+
+	for _, file := range files {
+		lines, err := a.readChatLinesFromFile(file)
+		if err != nil {
+			log.Println("Failed to load log "+file, err)
+			runtime.EventsEmit(a.ctx, "error", "Failed to load log: "+err.Error(), true)
+			continue
+		}
+
+		newLogs = append(newLogs, lines...)
+		loadedFiles = append(loadedFiles, file)
+	}
+
+	runtime.EventsEmit(a.ctx, "setLoadStatus", false)
+
+	if len(loadedFiles) == 0 {
+		return
+	}
+
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
+
+	if generation != loadGeneration {
+		log.Println("Discarding stale static log load")
+		return
+	}
+
+	a.stopWatchingLocked()
+	*fileSize = 0
+	*linesCount = len(newLogs)
+	didDoInitialLogIgnore = true
+	shouldLoadLog = false
+
 	runtime.EventsEmit(a.ctx, "logFileSelected")
 
-	if strings.HasSuffix(file, ".log.gz") {
-		log.Println(".log.gz", file)
-		log, err := a.unzip(file)
-		if err != nil {
-			runtime.EventsEmit(a.ctx, "error", "Failed to load log: "+err.Error(), true)
-			return
-		}
-		a.loadLogFile(log, filepath.Base(file), true)
-	} else if strings.HasSuffix(file, ".log") {
-		log.Println(".log", file)
-		a.loadLogFile(file, filepath.Base(file), false)
-	} else {
-		runtime.EventsEmit(a.ctx, "error", "Failed to get selected file: file type not supported", true)
+	if len(newLogs) > 0 {
+		log.Println("Emitting log")
+		runtime.EventsEmit(a.ctx, "log", strings.Join(newLogs, "\n"))
 	}
+
+	runtime.EventsEmit(a.ctx, "nonLatestFileLoaded")
+
+	title := fmt.Sprintf("Birch: %d log files", len(loadedFiles))
+	if len(loadedFiles) == 1 {
+		title = "Birch: " + filepath.Base(loadedFiles[0])
+	}
+	runtime.WindowSetTitle(a.ctx, title)
+}
+
+func (a *App) OpenLogFiles() {
+	dialogOptions := runtime.OpenDialogOptions{
+		DefaultDirectory: a.activeMinecraftDir() + sep() + "logs",
+		Title:            "Select the log files",
+		Filters: []runtime.FileFilter{
+			{
+				DisplayName: "Log files",
+				Pattern:     "*.log;*.log.gz",
+			},
+		},
+	}
+
+	files, err := runtime.OpenMultipleFilesDialog(a.ctx, dialogOptions)
+	if err != nil {
+		runtime.EventsEmit(a.ctx, "error", "Failed to get selected files: "+err.Error(), true)
+		return
+	}
+
+	if len(files) == 0 {
+		return
+	}
+
+	a.OpenLogFilesWithNames(files)
 }
 
 func (a *App) OpenLogFile() {
