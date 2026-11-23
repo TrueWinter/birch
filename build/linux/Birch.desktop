@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Birch
+Comment=Minecraft log viewer
+Exec=birch
+Icon=birch
+Type=Application
+Categories=Game;Utility;
+Terminal=false

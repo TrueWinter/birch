@@ -13,9 +13,11 @@ func getAppDataDir(userDir string) string {
 		return userDir + "\\AppData\\Roaming"
 	} else if isMac() {
 		return userDir + "/Library/Application Support"
+	} else if isLinux() {
+		return userDir + "/.local/share"
 	}
 
-	panic("Birch only runs on Windows and Mac at this time")
+	panic("Birch only runs on Windows, Mac, and Linux at this time")
 }
 
 func getConfigDir(userDir string) string {
@@ -27,9 +29,11 @@ func getMinecraftDir(userDir string) string {
 		return getAppDataDir(userDir) + "\\.minecraft"
 	} else if isMac() {
 		return getAppDataDir(userDir) + "/minecraft"
+	} else if isLinux() {
+		return userDir + "/.minecraft"
 	}
 
-	panic("Birch only runs on Windows and Mac at this time")
+	panic("Birch only runs on Windows, Mac, and Linux at this time")
 }
 
 func isWindows() bool {
@@ -38,6 +42,10 @@ func isWindows() bool {
 
 func isMac() bool {
 	return runtime.GOOS == "darwin"
+}
+
+func isLinux() bool {
+	return runtime.GOOS == "linux"
 }
 
 func sep() string {
@@ -51,9 +59,9 @@ func sep() string {
 func getCharMap() encoding.Encoding {
 	if isWindows() {
 		return charmap.ISO8859_1
-	} else if isMac() {
+	} else if isMac() || isLinux() {
 		return unicode.UTF8
 	}
 
-	panic("Birch only runs on Windows and Mac at this time")
+	panic("Birch only runs on Windows, Mac, and Linux at this time")
 }
