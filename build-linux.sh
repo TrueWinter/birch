@@ -4,7 +4,7 @@ set -e
 npm run test
 npm run generate-license-json
 
-build_args=(-platform linux/amd64 -clean)
+build_args=(-platform linux/amd64 -clean -tags webkit2_41)
 if [ -n "${WAILS_TAGS:-}" ]; then
 	build_args+=(-tags "$WAILS_TAGS")
 fi
