@@ -39,6 +39,7 @@ var linesCount *int
 var didDoInitialLogIgnore bool
 var shouldLoadLog bool
 var fileToLoad string
+var loadGeneration uint64
 
 // NewApp creates a new App application struct
 func NewApp() *App {
@@ -106,6 +107,7 @@ func (a *App) startWatchingLockedWith(existingContentIsNew bool) {
 
 	latestLogFile := latestLogFileFor(active.MinecraftDirectory)
 	fileToLoad = latestLogFile
+	loadGeneration++
 	didDoInitialLogIgnore = existingContentIsNew
 	shouldLoadLog = true
 	*fileSize = 0
@@ -714,16 +716,12 @@ func (a *App) readChatLinesFromFile(file string) ([]string, error) {
 
 func (a *App) OpenLogFilesWithNames(files []string) {
 	runtime.EventsEmit(a.ctx, "setLoadStatus", true)
-	runtime.EventsEmit(a.ctx, "logFileSelected")
 
 	files = sortedLogFiles(files)
 
 	a.mutex.Lock()
-	a.stopWatchingLocked()
-	*fileSize = 0
-	*linesCount = 0
-	didDoInitialLogIgnore = true
-	shouldLoadLog = false
+	loadGeneration++
+	generation := loadGeneration
 	a.mutex.Unlock()
 
 	newLogs := []string{}
@@ -748,8 +746,20 @@ func (a *App) OpenLogFilesWithNames(files []string) {
 	}
 
 	a.mutex.Lock()
+	defer a.mutex.Unlock()
+
+	if generation != loadGeneration {
+		log.Println("Discarding stale static log load")
+		return
+	}
+
+	a.stopWatchingLocked()
+	*fileSize = 0
 	*linesCount = len(newLogs)
-	a.mutex.Unlock()
+	didDoInitialLogIgnore = true
+	shouldLoadLog = false
+
+	runtime.EventsEmit(a.ctx, "logFileSelected")
 
 	if len(newLogs) > 0 {
 		log.Println("Emitting log")

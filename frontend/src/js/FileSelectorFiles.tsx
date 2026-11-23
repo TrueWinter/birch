@@ -1,4 +1,4 @@
-import { useRef, MouseEvent } from 'react'
+import { useEffect, useRef, MouseEvent } from 'react'
 
 import { main } from '../../wailsjs/go/models'
 
@@ -21,13 +21,13 @@ export default function FileSelectorFiles({
 }: FileSelectorFilesProps) {
 	const filesRef = useRef(null as unknown as HTMLDivElement);
 
-	setTimeout(() => {
+	useEffect(() => {
 		if (filesRef.current) {
 			filesRef.current.scrollTo({
 				top: filesRef.current.scrollHeight
 			})
 		}
-	});
+	}, [files, search]);
 
 	function getFiles() {
 		const l = files.filter(e => e.Name.includes(search))

@@ -31,7 +31,7 @@ export function selectFile(
 		}
 
 		return {
-			selected: new Set([clickedPath]),
+			selected: modifiers.ctrl ? new Set([...currentSelection, clickedPath]) : new Set([clickedPath]),
 			anchor: clickedPath
 		};
 	}

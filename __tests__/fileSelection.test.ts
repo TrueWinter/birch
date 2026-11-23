@@ -83,3 +83,14 @@ test('shift click falls back to one file when the anchor is not visible', () => 
 	expect(result.selected).toEqual(new Set(['d.log']));
 	expect(result.anchor).toBe('d.log');
 });
+
+test('ctrl and shift preserve the existing selection when the anchor is not visible', () => {
+	const visible = ['a.log', 'c.log', 'd.log'];
+	const result = selectFile(visible, new Set(['a.log', 'b.log']), 'b.log', 'd.log', {
+		ctrl: true,
+		shift: true
+	});
+
+	expect(result.selected).toEqual(new Set(['a.log', 'b.log', 'd.log']));
+	expect(result.anchor).toBe('d.log');
+});

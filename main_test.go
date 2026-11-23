@@ -529,18 +529,25 @@ func TestReadChatLinesFromFile(t *testing.T) {
 	a := NewApp()
 	dir := t.TempDir()
 
-	logFile := filepath.Join(dir, "2024-01-01.log")
-	if err := os.WriteFile(logFile, []byte(strings.Join([]string{
+	fixture := strings.Join([]string{
 		"[12:00:00] [Render thread/INFO]: Starting",
 		"[12:00:01] [Render thread/INFO]: [CHAT] hello",
-		"[12:00:02] [Render thread/INFO]: [CHAT] world",
-	}, "\n")), 0644); err != nil {
+		"[12:00:02] [Render thread/INFO]: [CHAT] café",
+	}, "\n")
+
+	encoded, err := getCharMap().NewEncoder().String(fixture)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	logFile := filepath.Join(dir, "2024-01-01.log")
+	if err := os.WriteFile(logFile, []byte(encoded), 0644); err != nil {
 		t.Fatal(err)
 	}
 
 	expected := []string{
 		"[12:00:01] [Render thread/INFO]: [CHAT] hello",
-		"[12:00:02] [Render thread/INFO]: [CHAT] world",
+		"[12:00:02] [Render thread/INFO]: [CHAT] café",
 	}
 
 	lines, err := a.readChatLinesFromFile(logFile)
@@ -557,7 +564,7 @@ func TestReadChatLinesFromFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	gz := gzip.NewWriter(gzOut)
-	if _, err := gz.Write([]byte("[12:00:03] [Render thread/INFO]: [CHAT] from gzip")); err != nil {
+	if _, err := gz.Write([]byte(encoded)); err != nil {
 		t.Fatal(err)
 	}
 	if err := gz.Close(); err != nil {
@@ -571,7 +578,7 @@ func TestReadChatLinesFromFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(lines, []string{"[12:00:03] [Render thread/INFO]: [CHAT] from gzip"}) {
+	if !reflect.DeepEqual(lines, expected) {
 		t.Errorf("unexpected gzip lines: %#v", lines)
 	}
 
