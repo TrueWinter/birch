@@ -8,4 +8,4 @@ wails build -platform windows/amd64 -nsis -clean
 
 cd ./build/bin
 # Only interested in the installer
-rm -r Birch-amd64.exe
+rm -f Birch.exe

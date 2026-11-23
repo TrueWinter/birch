@@ -959,22 +959,39 @@ func (a *App) DownloadUpdate(assets []GithubAsset) (string, error) {
 
 	resp, err := http.Get(asset.DownloadUrl)
 	if err != nil {
+		discardUpdateFile(tempFile)
 		return "", err
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		discardUpdateFile(tempFile)
+		return "", errors.New("unexpected response status: " + resp.Status)
+	}
+
 	n, err := io.Copy(tempFile, resp.Body)
 	if err != nil {
+		discardUpdateFile(tempFile)
 		return "", err
 	}
 
 	if n == 0 {
+		discardUpdateFile(tempFile)
 		return "", errors.New("received blank file")
 	}
 
-	tempFile.Chmod(0766)
+	if err := tempFile.Chmod(0600); err != nil {
+		discardUpdateFile(tempFile)
+		return "", err
+	}
 
 	return tempFile.Name(), nil
+}
+
+func discardUpdateFile(file *os.File) {
+	name := file.Name()
+	file.Close()
+	os.Remove(name)
 }
 
 func installLinuxUpdate(file string) (string, error) {
