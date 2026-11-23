@@ -16,8 +16,6 @@ Birch is a Minecraft log viewer that allows you to easily search chat logs. It c
 
 After installing and opening Birch, it should show the chat from your latest log file. If it can't find the file, your Minecraft installation might not be in the default location. This can be changed from the Birch settings.
 
-On Linux, Birch uses `~/.minecraft` as the default Minecraft directory and stores its configuration and saved searches in `~/.local/share/TrueWinter/Birch`.
-
 ### Multiple Instances
 
 Birch supports multiple Minecraft installations. Each instance has its own Minecraft directory and an optional default saved search. You can add, rename, and remove instances from the Birch settings, and switch between them using the instance button in the top-right corner. Switching instances applies immediately and starts watching the selected instance's `latest.log`.
