@@ -1,6 +1,5 @@
 import { useRef, MouseEvent } from 'react'
 
-import { OpenLogFileWithName } from '../../wailsjs/go/main/App'
 import { main } from '../../wailsjs/go/models'
 
 import css from '../css/FileSelector.module.css'
@@ -10,11 +9,15 @@ import { ScrollArea } from '@mantine/core'
 interface FileSelectorFilesProps {
 	files: main.LogFiles[]
 	search: string
+	selected: Set<string>
+	onFileClick: (path: string, event: MouseEvent<HTMLDivElement>) => void
 }
 
 export default function FileSelectorFiles({
 	files,
-	search
+	search,
+	selected,
+	onFileClick
 }: FileSelectorFilesProps) {
 	const filesRef = useRef(null as unknown as HTMLDivElement);
 
@@ -26,14 +29,14 @@ export default function FileSelectorFiles({
 		}
 	});
 
-	function open(e: MouseEvent<HTMLDivElement>) {
-		const target = e.target as HTMLDivElement;
-		OpenLogFileWithName(target.dataset.path as string);
-	}
-
 	function getFiles() {
 		const l = files.filter(e => e.Name.includes(search))
-			.map(e => <div className={css.file} key={e.Path} data-path={e.Path} onClick={open}>{e.Name}</div>);
+			.map(e => <div
+				className={selected.has(e.Path) ? `${css.file} ${css.fileSelected}` : css.file}
+				key={e.Path}
+				data-path={e.Path}
+				onClick={(event) => onFileClick(e.Path, event)}
+			>{e.Name}</div>);
 
 		return l.length > 0 ? l : 'No files found'
 	}

@@ -15,3 +15,11 @@
 .file:hover {
 	background-color: #333;
 }
+
+.fileSelected {
+	background-color: #1f4f82;
+}
+
+.fileSelected:hover {
+	background-color: #26619f;
+}

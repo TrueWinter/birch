@@ -469,3 +469,113 @@ func TestChatLinesFromReader(t *testing.T) {
 		t.Errorf("expected %#v, got %#v", expected, got)
 	}
 }
+
+func TestSortedLogFiles(t *testing.T) {
+	files := []string{
+		"/logs/latest.log",
+		"/logs/2024-01-02-10.log.gz",
+		"/logs/2024-01-02-2.log.gz",
+		"/logs/2024-01-01.log",
+		"/logs/2024-01-02-11.log.gz",
+		"/logs/2024-01-02-1.log.gz",
+	}
+
+	expected := []string{
+		"/logs/2024-01-01.log",
+		"/logs/2024-01-02-1.log.gz",
+		"/logs/2024-01-02-2.log.gz",
+		"/logs/2024-01-02-10.log.gz",
+		"/logs/2024-01-02-11.log.gz",
+		"/logs/latest.log",
+	}
+
+	got := sortedLogFiles(files)
+	if !reflect.DeepEqual(got, expected) {
+		t.Errorf("expected %#v, got %#v", expected, got)
+	}
+
+	if !reflect.DeepEqual(files, []string{
+		"/logs/latest.log",
+		"/logs/2024-01-02-10.log.gz",
+		"/logs/2024-01-02-2.log.gz",
+		"/logs/2024-01-01.log",
+		"/logs/2024-01-02-11.log.gz",
+		"/logs/2024-01-02-1.log.gz",
+	}) {
+		t.Error("sortedLogFiles should not modify its input")
+	}
+}
+
+func TestNaturalCompare(t *testing.T) {
+	tests := []struct {
+		a, b     string
+		expected int
+	}{
+		{"2024-01-01-2.log.gz", "2024-01-01-10.log.gz", -1},
+		{"2024-01-01-10.log.gz", "2024-01-01-2.log.gz", 1},
+		{"2024-01-01-1.log.gz", "2024-01-01-1.log.gz", 0},
+		{"2024-01-01.log", "2024-01-02.log", -1},
+	}
+
+	for _, test := range tests {
+		got := naturalCompare(test.a, test.b)
+		if (got < 0) != (test.expected < 0) || (got > 0) != (test.expected > 0) {
+			t.Errorf("naturalCompare(%q, %q) = %d, expected sign %d", test.a, test.b, got, test.expected)
+		}
+	}
+}
+
+func TestReadChatLinesFromFile(t *testing.T) {
+	a := NewApp()
+	dir := t.TempDir()
+
+	logFile := filepath.Join(dir, "2024-01-01.log")
+	if err := os.WriteFile(logFile, []byte(strings.Join([]string{
+		"[12:00:00] [Render thread/INFO]: Starting",
+		"[12:00:01] [Render thread/INFO]: [CHAT] hello",
+		"[12:00:02] [Render thread/INFO]: [CHAT] world",
+	}, "\n")), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []string{
+		"[12:00:01] [Render thread/INFO]: [CHAT] hello",
+		"[12:00:02] [Render thread/INFO]: [CHAT] world",
+	}
+
+	lines, err := a.readChatLinesFromFile(logFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(lines, expected) {
+		t.Errorf("expected %#v, got %#v", expected, lines)
+	}
+
+	gzFile := filepath.Join(dir, "2024-01-02.log.gz")
+	gzOut, err := os.Create(gzFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gz := gzip.NewWriter(gzOut)
+	if _, err := gz.Write([]byte("[12:00:03] [Render thread/INFO]: [CHAT] from gzip")); err != nil {
+		t.Fatal(err)
+	}
+	if err := gz.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := gzOut.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	lines, err = a.readChatLinesFromFile(gzFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(lines, []string{"[12:00:03] [Render thread/INFO]: [CHAT] from gzip"}) {
+		t.Errorf("unexpected gzip lines: %#v", lines)
+	}
+
+	if _, err := a.readChatLinesFromFile(filepath.Join(dir, "notes.txt")); err == nil {
+		t.Error("expected unsupported file type to fail")
+	}
+}
