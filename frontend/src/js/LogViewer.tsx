@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ScrollArea } from '@mantine/core'
 import LogLine from './LogLine'
 import { ISearchGroup } from './AdvancedSearch'
@@ -6,6 +6,8 @@ import { Log } from './App'
 
 import { filter as doFilter } from './utils/search'
 import Skeleton from './Skeleton'
+
+const SCROLL_BUFFER_PX = 24;
 
 interface LogViewerProps {
 	logs: Log[]
@@ -28,7 +30,10 @@ export default function LogViewer({
 	function handleScroll({ y }: { y: number }) {
 		isUserScrolling.current = true;
 
-		if (y === viewerRef.current.scrollHeight - viewerRef.current.clientHeight) {
+		const distanceFromBottom =
+			viewerRef.current.scrollHeight - y - viewerRef.current.clientHeight;
+
+		if (distanceFromBottom <= SCROLL_BUFFER_PX) {
 			isUserScrolling.current = false;
 		}
 	}
@@ -38,15 +43,34 @@ export default function LogViewer({
 		setPrevSearchQuery(searchQuery);
 	}
 
+	function isEditingElsewhere(): boolean {
+		const active = document.activeElement as HTMLElement | null;
+		if (active && viewerRef.current?.contains(active)) return false;
+
+		return !!document.querySelector('[role="dialog"]') ||
+			!!active && (
+				active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' ||
+				active.tagName === 'SELECT' || active.isContentEditable
+			);
+	}
+
 	// Because React hasn't yet rendered the logs, there's nothing to scroll down to at this point so scroll at the next tick.
-	setTimeout(() => {
-		if (viewerRef.current) {
-			if (!isUserScrolling.current) {
-				viewerRef.current?.scrollTo(0, viewerRef.current.scrollHeight);
+	useEffect(() => {
+		const timeout = setTimeout(() => {
+			if (viewerRef.current) {
+				if (!isUserScrolling.current) {
+					viewerRef.current?.scrollTo(0, viewerRef.current.scrollHeight);
+				}
+
+				// Don't steal focus from an open modal or text input being edited.
+				if (!isEditingElsewhere()) {
+					viewerRef.current?.focus();
+				}
 			}
-			viewerRef.current?.focus();
-		}
-	});
+		});
+
+		return () => clearTimeout(timeout);
+	}, [logs, searchQuery]);
 
 	return (
 		<>
